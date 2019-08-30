@@ -49,7 +49,26 @@
 #endif
 
 #include "gstcvobjectdetect.h"
-#include "roimeta.h"
+#include "multiroimeta.h"
+
+struct _GstCVObjectDetectContext
+{
+  gint index;
+  cv::Mat img;
+  GstBuffer *buf;
+  gdouble unscale_factor;
+};
+
+static void
+gst_cv_object_detect_context_init (GstCVObjectDetectContext * ctx,
+    GstCVObjectDetect * filter, cv::Mat img, GstBuffer * buf,
+    gdouble unscale_factor)
+{
+  ctx->index = 0;
+  ctx->img = img;
+  ctx->buf = buf;
+  ctx->unscale_factor = unscale_factor;
+}
 
 typedef struct
 {
@@ -185,13 +204,31 @@ draw_bounding_box (cv::Mat & img, graphene_rect_t * r, gdouble & unscale_factor)
   cv::rectangle (img, box, DEFAULT_BOUNDING_BOX_COLOR);
 }
 
-static GSList *
+void
+gst_cv_object_detect_register_face (GstCVObjectDetect * self,
+    graphene_rect_t * rectangle, gpointer user_data)
+{
+  GstCVObjectDetectContext *ctx = (GstCVObjectDetectContext *) user_data;
+  GstCVMultiROIMeta *roi_meta;
+
+  roi_meta = gst_buffer_add_cv_multi_roi_meta (ctx->buf);
+  gst_cv_multi_roi_meta_insert_roi_at_index (roi_meta, ctx->index, rectangle);
+
+  if (self->draw)
+    draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);
+
+  ctx->index++;
+}
+
+void
 gst_cv_object_detect_default (GstCVObjectDetect * self, GstBuffer * buf,
-    cv::Mat & img, gdouble & unscale_factor)
+    cv::Mat & img)
 {
   GstCVObjectDetectClass *klass = GST_CV_OBJECT_DETECT_CLASS_GET_CLASS (self);
   GstCVDupScaleMeta *meta;
   cv::Mat scaled_frame;
+  GstCVObjectDetectContext ctx;
+  gdouble unscale_factor;
 
   meta = (GstCVDupScaleMeta *) gst_buffer_get_meta (buf,
       GST_CV_DUP_SCALE_META_API_TYPE);
@@ -204,7 +241,8 @@ gst_cv_object_detect_default (GstCVObjectDetect * self, GstBuffer * buf,
     unscale_factor = 1.0;
   }
 
-  return klass->detect (self, scaled_frame);
+  gst_cv_object_detect_context_init (&ctx, self, img, buf, unscale_factor);
+  klass->detect (self, scaled_frame, &ctx);
 }
 
 static GstFlowReturn
@@ -213,30 +251,14 @@ gst_cv_object_detect_transform_ip (GstOpencvVideoFilter * base,
 {
   GstCVObjectDetect *self = GST_CV_OBJECT_DETECT (base);
   GstCVObjectDetectClass *klass = GST_CV_OBJECT_DETECT_CLASS_GET_CLASS (self);
-  gdouble unscale_factor;
 
   g_return_val_if_fail (klass->detect != NULL, GST_FLOW_ERROR);
 
   if (!self->enabled)
       return GST_FLOW_OK;
 
-  if (self->ready) {
-    GSList *rectangles, *l;
-
-    rectangles = gst_cv_object_detect_default (self, buf, img, unscale_factor);
-    for (l = rectangles; l != NULL; l = l->next) {
-      GstCVROIMeta *roi_meta;
-      graphene_rect_t *rectangle;
-
-      rectangle = (graphene_rect_t *) l->data;
-      roi_meta = gst_buffer_add_cv_roi_meta (buf, rectangle);
-      roi_meta->roi = *rectangle;
-
-      if (self->draw)
-        draw_bounding_box (img, rectangle, unscale_factor);
-    }
-    g_slist_free_full (rectangles, g_free);
-  }
+  if (self->ready)
+    gst_cv_object_detect_default (self, buf, img);
 
   return GST_FLOW_OK;
 }

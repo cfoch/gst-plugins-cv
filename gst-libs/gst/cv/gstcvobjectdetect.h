@@ -58,6 +58,8 @@
 
 G_BEGIN_DECLS
 
+typedef struct _GstCVObjectDetectContext  GstCVObjectDetectContext;
+
 /* #defines don't like whitespacey bits */
 #define GST_TYPE_CV_OBJECT_DETECT \
   (gst_cv_object_detect_get_type())
@@ -72,6 +74,7 @@ G_BEGIN_DECLS
 #define GST_CV_OBJECT_DETECT_CLASS_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS((obj),GST_TYPE_CV_OBJECT_DETECT,GstCVObjectDetectClass))
 
+typedef void (GstCVObjectDetectCallback)(graphene_rect_t *, void *);
 typedef struct _GstCVObjectDetect  GstCVObjectDetect;
 typedef struct _GstCVObjectDetectClass GstCVObjectDetectClass;
 
@@ -87,7 +90,7 @@ struct _GstCVObjectDetect
 struct _GstCVObjectDetectClass
 {
   GstOpencvVideoFilterClass parent_class;
-  GSList * (* detect) (GstCVObjectDetect * self, cv::Mat & img);
+  void (* detect) (GstCVObjectDetect * self, cv::Mat & img, GstCVObjectDetectContext * ctx);
 };
 
 GST_CV_API
@@ -95,6 +98,9 @@ GType gst_cv_object_detect_get_type (void);
 
 GST_CV_API
 gboolean gst_cv_object_detect_plugin_init (GstPlugin * plugin);
+
+GST_CV_API
+void gst_cv_object_detect_register_face (GstCVObjectDetect * self, graphene_rect_t * rectangle, gpointer user_data);
 
 G_END_DECLS
 

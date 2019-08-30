@@ -56,7 +56,6 @@ glib_dep = dependency('glib-2.0')
 gst_dep = dependency('gstreamer-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_dep'])
 
-boost_dep = dependency('boost')
 opencv_dep = dependency('opencv', version : '>= 3.0.0', required: false)
 if not opencv_dep.found()
   opencv_dep = dependency('opencv4', version : '>= 4.0.0', required: true)

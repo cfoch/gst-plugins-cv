@@ -1,15 +1,15 @@
 cv_sources = [
   'gstcvobjectdetect.cpp',
-  'roimeta.c',
   'dupscalemeta.cpp',
-  'utils.c'
+  'utils.c',
+  'multiroimeta.c'
 ]
 
 cv_headers = [
   'gstcvobjectdetect.h',
-  'roimeta.h',
   'dupscalemeta.h',
-  'utils.h'
+  'utils.h',
+  'multiroimeta.h'
 ]
 
 if opencv_dep.found() and graphene_dep.found()

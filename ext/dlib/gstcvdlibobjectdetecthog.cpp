@@ -42,9 +42,7 @@
 
 #include "gstcvdlibobjectdetecthog.h"
 
-#include <boost/interprocess/streams/bufferstream.hpp>
 #include <dlib/opencv/cv_image.h>
-
 
 #include <dlib/svm_threaded.h>
 #include <dlib/gui_widgets.h>
@@ -54,7 +52,6 @@
 #include <iostream>
 
 using namespace dlib;
-using namespace boost::interprocess;
 
 typedef object_detector<scan_fhog_pyramid<pyramid_down<6> > > GstCVDlibDetector;
 
@@ -69,8 +66,8 @@ G_DEFINE_TYPE_WITH_PRIVATE (GstCVDlibObjectDetectHOG, gst_cv_dlib_object_detect_
 
 static GstFlowReturn gst_cv_dlib_object_detect_hog_transform_ip (
     GstOpencvVideoFilter * base, GstBuffer * buf, cv::Mat img);
-GSList * gst_cv_dlib_object_detect_hog_detect (GstCVObjectDetect * self,
-    cv::Mat & img);
+void gst_cv_dlib_object_detect_hog_detect (GstCVObjectDetect * self, cv::Mat & img,
+    GstCVObjectDetectContext * ctx);
 static void gst_cv_dlib_object_detect_hog_load_model (
     GstCVDlibObjectDetectHOG * self, const gchar * location);
 
@@ -212,30 +209,28 @@ gst_cv_dlib_object_detect_hog_get_property (GObject * object, guint prop_id,
   }
 }
 
-GSList *
-gst_cv_dlib_object_detect_hog_detect (GstCVObjectDetect * filter, cv::Mat & img)
+void
+gst_cv_dlib_object_detect_hog_detect (GstCVObjectDetect * filter, cv::Mat & img,
+    GstCVObjectDetectContext *ctx)
 {
   GstCVDlibObjectDetectHOG *self = GST_CV_DLIB_OBJECT_DETECT_HOG (filter);
   GstCVDlibObjectDetectHOGPrivate *priv = (GstCVDlibObjectDetectHOGPrivate *)
       gst_cv_dlib_object_detect_hog_get_instance_private (self);
-  guint i;
-  GSList *list = NULL;
-
-
   dlib::array2d<bgr_pixel> dlib_img;
   dlib::assign_image(dlib_img, dlib::cv_image<bgr_pixel>(img));
+  guint i;
 
   std::vector<rectangle> dets = (*priv->detector)(dlib_img);
 
   for (i = 0; i < dets.size(); i++) {
     dlib::rectangle &rectangle = dets[i];
-    graphene_rect_t *rect;
-    rect = g_new0 (graphene_rect_t, 1);
-    graphene_rect_init (rect, rectangle.left (), rectangle.top (),
+    graphene_rect_t rect;
+    graphene_rect_init (&rect, rectangle.left (), rectangle.top (),
         rectangle.width (), rectangle.height ());
-    list = g_slist_append (list, rect);
+
+    gst_cv_object_detect_register_face (GST_CV_OBJECT_DETECT (self), &rect,
+        ctx);
   }
-  return list;
 }
 
 static void
@@ -262,8 +257,6 @@ read_model_cb (GObject * source_object, GAsyncResult * res, gpointer user_data)
 
   bytes = g_byte_array_free_to_bytes (gbarray);
   data = g_bytes_get_data (bytes, &data_size);
-
-  // bufferstream sin((char *) data, (size_t) data_size);
 
   std::string buffer((const char *) data, (size_t) data_size);
   std::istringstream sin(buffer);
@@ -294,7 +287,6 @@ static GstFlowReturn
 gst_cv_dlib_object_detect_hog_transform_ip (GstOpencvVideoFilter * base,
     GstBuffer * buf, cv::Mat img)
 {
-  GstCVDlibObjectDetectHOG *self = GST_CV_DLIB_OBJECT_DETECT_HOG (base);
   GstFlowReturn ret;
 
   ret = GST_OPENCV_VIDEO_FILTER_CLASS (parent_class)->cv_trans_ip_func (base,
