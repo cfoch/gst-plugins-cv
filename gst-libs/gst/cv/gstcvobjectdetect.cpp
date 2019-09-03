@@ -162,6 +162,20 @@ draw_bounding_box (cv::Mat &img, graphene_rect_t *r, gdouble &unscale_factor)
   cv::rectangle (img, box, DEFAULT_BOUNDING_BOX_COLOR);
 }
 
+static void
+draw_id (cv::Mat &img, guint index, graphene_rect_t *r, gdouble &unscale_factor)
+{
+  gchar *str_id;
+  gdouble x = r->origin.x * unscale_factor + r->size.width * unscale_factor / 2;
+  gdouble y = r->origin.y * unscale_factor + r->size.height * unscale_factor/ 2;
+  cv::Point origin (x, y);
+
+  str_id = g_strdup_printf ("%d", index);
+  cv::putText (img, str_id, origin, cv::FONT_HERSHEY_SIMPLEX, unscale_factor,
+      DEFAULT_BOUNDING_BOX_COLOR);
+  g_free (str_id);
+}
+
 void
 gst_cv_object_detect_register_face (GstCVObjectDetect *self,
     graphene_rect_t *rectangle, gpointer user_data)
@@ -182,8 +196,10 @@ gst_cv_object_detect_register_face (GstCVObjectDetect *self,
 
   gst_cv_object_info_map_insert_object_info_at_index (map, ctx->index, info);
 
-  if (self->draw)
+  if (self->draw) {
     draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);
+    draw_id (ctx->img, ctx->index, rectangle, ctx->unscale_factor);
+  }
 
   ctx->index++;
 }
