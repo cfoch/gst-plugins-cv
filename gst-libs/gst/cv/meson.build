@@ -5,7 +5,8 @@ cv_sources = [
   'multiroimeta.c',
   'objectinfo.c',
   'objectinfodraw.cpp',
-  'objectinfomap.c'
+  'objectinfomap.c',
+  'objectinfomapmeta.c',
 ]
 
 cv_headers = [
@@ -15,7 +16,8 @@ cv_headers = [
   'multiroimeta.h',
   'objectinfo.h',
   'objectinfodraw.h',
-  'objectinfomap.h'
+  'objectinfomap.h',
+  'objectinfomapmeta.h'
 ]
 
 if opencv_dep.found() and graphene_dep.found()
