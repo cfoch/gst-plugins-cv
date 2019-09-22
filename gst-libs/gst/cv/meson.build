@@ -1,10 +1,12 @@
 cv_sources = [
   'gstcvobjectdetect.cpp',
+  'dupscalemeta.cpp',
   'utils.c'
 ]
 
 cv_headers = [
   'gstcvobjectdetect.h',
+  'dupscalemeta.h',
   'utils.h'
 ]
 

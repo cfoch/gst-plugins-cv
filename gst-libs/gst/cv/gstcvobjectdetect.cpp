@@ -27,13 +27,18 @@
 struct _GstCVObjectDetectContext
 {
   cv::Mat img;
+  GstBuffer *buf;
+  gdouble unscale_factor;
 };
 
 static void
 gst_cv_object_detect_context_init (GstCVObjectDetectContext *ctx,
-    GstCVObjectDetect *filter, cv::Mat img)
+    GstCVObjectDetect *filter, cv::Mat img, GstBuffer *buf, gdouble
+    unscale_factor)
 {
   ctx->img = img;
+  ctx->buf = buf;
+  ctx->unscale_factor = unscale_factor;
 }
 
 GST_DEBUG_CATEGORY_STATIC (gst_cv_object_detect_debug);
@@ -144,9 +149,10 @@ gst_cv_object_detect_get_property (GObject *object, guint prop_id,
 }
 
 static void
-draw_bounding_box (cv::Mat &img, graphene_rect_t *r)
+draw_bounding_box (cv::Mat &img, graphene_rect_t *r, gdouble &unscale_factor)
 {
-  cv::Rect box (r->origin.x, r->origin.y, r->size.width, r->size.height);
+  cv::Rect box (r->origin.x * unscale_factor, r->origin.y * unscale_factor,
+      r->size.width * unscale_factor, r->size.height * unscale_factor);
   cv::rectangle (img, box, DEFAULT_BOUNDING_BOX_COLOR);
 }
 
@@ -156,7 +162,32 @@ gst_cv_object_detect_register_face (GstCVObjectDetect *self,
 {
   /* TODO: Communicate rectangle coordinates info. */
   if (self->draw)
-    draw_bounding_box (ctx->img, rectangle);
+    draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);
+}
+
+static void
+gst_cv_object_detect_default (GstCVObjectDetect *self, GstBuffer *buf,
+    cv::Mat &img)
+{
+  GstCVObjectDetectClass *klass = GST_CV_OBJECT_DETECT_CLASS_GET_CLASS (self);
+  GstCVDupScaleMeta *meta;
+  cv::Mat scaled_frame;
+  GstCVObjectDetectContext ctx;
+  gdouble unscale_factor;
+
+  meta = (GstCVDupScaleMeta *) gst_buffer_get_meta (buf,
+      GST_CV_DUP_SCALE_META_API_TYPE);
+
+  if (meta) {
+    scaled_frame = gst_cv_dup_scale_meta_get_scaled_frame (meta);
+    unscale_factor = gst_cv_dup_scale_meta_get_unscale_factor (meta);
+  } else {
+    scaled_frame = img;
+    unscale_factor = 1.0;
+  }
+
+  gst_cv_object_detect_context_init (&ctx, self, img, buf, unscale_factor);
+  klass->detect (self, scaled_frame, &ctx);
 }
 
 static GstFlowReturn
@@ -168,12 +199,8 @@ gst_cv_object_detect_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf,
 
   g_return_val_if_fail (klass->detect != NULL, GST_FLOW_ERROR);
 
-  if (self->ready) {
-    GstCVObjectDetectContext ctx;
-
-    gst_cv_object_detect_context_init (&ctx, self, img);
-    klass->detect (self, img, &ctx);
-  }
+  if (self->ready)
+    gst_cv_object_detect_default (self, buf, img);
 
   return GST_FLOW_OK;
 }
