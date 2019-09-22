@@ -49,6 +49,8 @@ GstCVObjectInfo * gst_cv_object_info_new_with_params (const GValue * value,
 
 const GValue *    gst_cv_object_info_get_value       (GstCVObjectInfo * self);
 
+GType             gst_cv_object_info_get_value_type  (GstCVObjectInfo * self);
+
 void              gst_cv_object_info_add_params      (GstCVObjectInfo * self,
                                                       GstStructure *    params);
 
