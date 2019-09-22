@@ -6,6 +6,8 @@ cv_sources = [
   'object/info/objectinfomap.c',
   'object/info/objectinfomapcache.c',
   'object/info/objectinfomapmeta.c',
+  'object/info/objectinfodraw.cpp',
+  'object/info/objectinfocentroid.c',
 ]
 
 cv_headers = [
@@ -17,6 +19,8 @@ cv_headers = [
   'object/info/objectinfomapcache.h',
   'object/info/objectinfomapmeta.h',
   'object/info/objectinfoutils.h',
+  'object/info/objectinfodraw.h',
+  'object/info/objectinfocentroid.h',
 ]
 
 if opencv_dep.found() and graphene_dep.found()

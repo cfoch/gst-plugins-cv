@@ -69,6 +69,12 @@ gst_cv_object_info_get_value (GstCVObjectInfo * self)
   return &self->value;
 }
 
+GType
+gst_cv_object_info_get_value_type (GstCVObjectInfo * self)
+{
+  return G_VALUE_TYPE (&self->value);
+}
+
 GstCVObjectInfo *
 gst_cv_object_info_copy (const GstCVObjectInfo * self)
 {
