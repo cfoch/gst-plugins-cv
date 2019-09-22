@@ -20,51 +20,49 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __GST_CV_MULTI_ROI_META_H__
-#define __GST_CV_MULTI_ROI_META_H__
+#ifndef __GST_CV_OBJECT_INFO_MAP_META_H__
+#define __GST_CV_OBJECT_INFO_MAP_META_H__
 
 #include <gst/gst.h>
 #include <graphene.h>
+#include "objectinfomap.h"
 
 G_BEGIN_DECLS
 
-typedef struct _GstCVMultiROIMeta GstCVMultiROIMeta;
+typedef struct _GstCVObjectInfoMapMeta GstCVObjectInfoMapMeta;
 
 /**
- * GstCVMultiROIMeta:
+ * GstCVObjectInfoMapMeta:
  * @meta: The parent #GstMeta.
  * @roi: A #graphene_rect_t representing a region of interest.
  *
  * Metadata type that describes a region of interest contained in a #GstBuffer.
  */
-struct _GstCVMultiROIMeta {
+struct _GstCVObjectInfoMapMeta {
   GstMeta meta;
 
-  graphene_rect_t bounding_box;
-  GHashTable *rois;
+  GstCVObjectInfoMap *object_info_map;
 };
 
-GType gst_cv_multi_roi_meta_api_get_type (void);
-#define GST_CV_MULTI_ROI_META_API_TYPE (gst_cv_multi_roi_meta_api_get_type())
+GType gst_cv_object_info_map_meta_api_get_type (void);
+#define GST_CV_OBJECT_INFO_MAP_META_API_TYPE (gst_cv_object_info_map_meta_api_get_type())
 
-#define gst_buffer_get_cv_multi_roi_meta(b) \
-    ((GstCVMultiROIMeta*)gst_buffer_get_meta ((b), GST_CV_MULTI_ROI_META_API_TYPE))
+#define gst_buffer_get_cv_object_info_map_meta(b) \
+    ((GstCVObjectInfoMapMeta*)gst_buffer_get_meta ((b), GST_CV_OBJECT_INFO_MAP_META_API_TYPE))
 
-#define GST_CV_MULTI_ROI_META_INFO (gst_cv_multi_roi_meta_get_info())
+#define GST_CV_OBJECT_INFO_MAP_META_INFO (gst_cv_object_info_map_meta_get_info())
 
-gboolean gst_cv_multi_roi_meta_init (GstMeta * meta, gpointer params,
+gboolean gst_cv_object_info_map_meta_init (GstMeta * meta, gpointer params,
     GstBuffer * buffer);
 
-void gst_cv_multi_roi_meta_free (GstMeta * meta, GstBuffer * buffer);
+void gst_cv_object_info_map_meta_free (GstMeta * meta, GstBuffer * buffer);
 
-const GstMetaInfo * gst_cv_multi_roi_meta_get_info (void);
+const GstMetaInfo * gst_cv_object_info_map_meta_get_info (void);
 
-graphene_rect_t * gst_cv_multi_roi_meta_get_roi_at_index (GstCVMultiROIMeta * self,
-    guint index);
-void gst_cv_multi_roi_meta_insert_roi_at_index (GstCVMultiROIMeta * self, guint index,
-    graphene_rect_t * roi);
-GstCVMultiROIMeta * gst_buffer_add_cv_multi_roi_meta (GstBuffer * buffer);
+GstCVObjectInfoMap * gst_cv_object_info_map_meta_get_object_info_map (GstCVObjectInfoMapMeta * self);
+
+GstCVObjectInfoMapMeta * gst_buffer_add_cv_object_info_map_meta (GstBuffer * buffer);
 
 G_END_DECLS
 
-#endif /* __GST_CV_MULTI_ROI_META_H__ */
+#endif /* __GST_CV_OBJECT_INFO_MAP_META_H__ */

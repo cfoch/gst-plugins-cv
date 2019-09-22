@@ -20,6 +20,14 @@
 
 #include "objectinfomap.h"
 
+typedef struct _GstCVObjectInfoMapFuncData GstCVObjectInfoMapFuncData;
+struct _GstCVObjectInfoMapFuncData
+{
+  GstCVObjectInfoMapFunc foreach_func;
+  gpointer user_data;
+  guint index;
+};
+
 struct _GstCVObjectInfoMap {
   GstMiniObject mini_object;
   /* < private > */
@@ -27,6 +35,12 @@ struct _GstCVObjectInfoMap {
 };
 
 GST_DEFINE_MINI_OBJECT_TYPE (GstCVObjectInfoMap, gst_cv_object_info_map);
+
+static void
+_gst_cv_object_info_map_free_table_value (GList * list)
+{
+  g_list_free_full (list, (GDestroyNotify) gst_mini_object_unref);
+}
 
 static void
 _gst_cv_object_info_map_free (GstCVObjectInfoMap * self)
@@ -55,7 +69,7 @@ gst_cv_object_info_map_new ()
       (GstMiniObjectDisposeFunction) NULL,
       (GstMiniObjectFreeFunction) _gst_cv_object_info_map_free);
   self->table = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL,
-      (GDestroyNotify) gst_mini_object_unref);
+      (GDestroyNotify) _gst_cv_object_info_map_free_table_value);
   return self;
 }
 
@@ -67,7 +81,7 @@ cv_object_info_map_get_object_info_list_at_index (GstCVObjectInfoMap * self,
 }
 
 GstCVObjectInfo *
-cv_object_info_map_lookup_object_info (GstCVObjectInfoMap * self,
+gst_cv_object_info_map_lookup_object_info (GstCVObjectInfoMap * self,
     guint index, const gchar * target_element_name, GstCVObjectInfoTag tag)
 {
   GList *list, *l;
@@ -94,7 +108,7 @@ cv_object_info_map_lookup_object_info (GstCVObjectInfoMap * self,
 }
 
 void
-cv_object_info_map_insert_object_info_at_index (GstCVObjectInfoMap * self,
+gst_cv_object_info_map_insert_object_info_at_index (GstCVObjectInfoMap * self,
     guint index, GstCVObjectInfo * info)
 {
   GList *original_list, *new_list;
@@ -104,4 +118,30 @@ cv_object_info_map_insert_object_info_at_index (GstCVObjectInfoMap * self,
 
   if (original_list == NULL)
     g_hash_table_insert (self->table, GINT_TO_POINTER (index), new_list);
+}
+
+
+static void
+_list_foreach (GstCVObjectInfo * object_info, GstCVObjectInfoMapFuncData *func_data)
+{
+  func_data->foreach_func (func_data->index, object_info, func_data->user_data);
+}
+
+static void
+_table_foreach (guint index, GList * object_info_list, GstCVObjectInfoMapFuncData * func_data)
+{
+  func_data->index = index;
+  g_list_foreach (object_info_list, (GFunc) _list_foreach, func_data);
+}
+
+void
+gst_cv_object_info_map_foreach (GstCVObjectInfoMap * self, GstCVObjectInfoMapFunc func,
+    gpointer user_data)
+{
+  GstCVObjectInfoMapFuncData data;
+
+  data.foreach_func = func;
+  data.user_data = user_data;
+
+  g_hash_table_foreach (self->table, (GHFunc) _table_foreach, &data);
 }

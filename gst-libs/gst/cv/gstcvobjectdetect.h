@@ -54,6 +54,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <graphene.h>
+#include <graphene-gobject.h>
 #include <gio/gio.h>
 
 G_BEGIN_DECLS

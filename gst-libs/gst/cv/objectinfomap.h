@@ -29,6 +29,7 @@
 #include "objectinfo.h"
 
 G_BEGIN_DECLS
+typedef void (* GstCVObjectInfoMapFunc) (guint index, GstCVObjectInfo * info, gpointer user_data);
 
 typedef struct _GstCVObjectInfoMap GstCVObjectInfoMap;
 
@@ -37,11 +38,14 @@ GType gst_cv_object_info_map_get_type ();
 GstCVObjectInfoMap * gst_cv_object_info_map_new ();
 
 
-GstCVObjectInfo * cv_object_info_map_lookup_object_info (
+GstCVObjectInfo * gst_cv_object_info_map_lookup_object_info (
 	GstCVObjectInfoMap * self, guint index, const gchar * target_element_name,
 	GstCVObjectInfoTag tag);
-void cv_object_info_map_insert_object_info_at_index (GstCVObjectInfoMap * self,
+void gst_cv_object_info_map_insert_object_info_at_index (GstCVObjectInfoMap * self,
 	guint index, GstCVObjectInfo * info);
+void gst_cv_object_info_map_foreach (GstCVObjectInfoMap * self, GstCVObjectInfoMapFunc func,
+    gpointer user_data);
+
 
 G_END_DECLS
 

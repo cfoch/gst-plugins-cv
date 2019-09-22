@@ -49,7 +49,8 @@
 #endif
 
 #include "gstcvobjectdetect.h"
-#include "multiroimeta.h"
+#include "objectinfomapmeta.h"
+
 
 struct _GstCVObjectDetectContext
 {
@@ -209,10 +210,20 @@ gst_cv_object_detect_register_face (GstCVObjectDetect * self,
     graphene_rect_t * rectangle, gpointer user_data)
 {
   GstCVObjectDetectContext *ctx = (GstCVObjectDetectContext *) user_data;
-  GstCVMultiROIMeta *roi_meta;
+  GstCVObjectInfoMapMeta *meta;
+  GstCVObjectInfoMap *map;
+  GstCVObjectInfo *info;
 
-  roi_meta = gst_buffer_add_cv_multi_roi_meta (ctx->buf);
-  gst_cv_multi_roi_meta_insert_roi_at_index (roi_meta, ctx->index, rectangle);
+  meta = (GstCVObjectInfoMapMeta *) (gst_buffer_get_meta (ctx->buf,
+      GST_CV_OBJECT_INFO_MAP_META_API_TYPE));
+  if (!meta)
+    meta = gst_buffer_add_cv_object_info_map_meta (ctx->buf);
+
+  map = gst_cv_object_info_map_meta_get_object_info_map (meta);
+  info = gst_cv_object_info_new (GST_ELEMENT (self), GST_CV_OBJECT_INFO_TAG_ROI,
+      GRAPHENE_TYPE_RECT, rectangle);
+
+  gst_cv_object_info_map_insert_object_info_at_index (map, ctx->index, info);
 
   if (self->draw)
     draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);

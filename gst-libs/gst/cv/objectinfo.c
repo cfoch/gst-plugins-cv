@@ -17,8 +17,24 @@
  * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
-
+#include <graphene.h>
 #include "objectinfo.h"
+
+GType
+gst_cv_object_info_tag_get_type (void)
+{
+  static GType cv_object_info_tag_type = 0;
+  if (!cv_object_info_tag_type) {
+    static GEnumValue tag_types[] = {
+      { GST_CV_OBJECT_INFO_TAG_UNDEFINED, "Undefined", "unfedined" },
+      { GST_CV_OBJECT_INFO_TAG_ROI, "ROI", "roi" },
+      { NULL, NULL, NULL}
+    };
+    cv_object_info_tag_type = g_enum_register_static ("GstCVObjectInfoTag",
+        tag_types);
+  }
+  return cv_object_info_tag_type;
+}
 
 struct _GstCVObjectInfo {
   GstMiniObject mini_object;
@@ -62,7 +78,7 @@ gst_cv_object_info_new (GstElement * element, GstCVObjectInfoTag tag,
   self->target_element = element;
   g_value_unset (&self->value);
   g_value_init (&self->value, v_type);
-  g_value_set_boxed (&self->value, &v_boxed);
+  g_value_set_boxed (&self->value, v_boxed);
 
   return self;
 }

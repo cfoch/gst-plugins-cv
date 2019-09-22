@@ -29,9 +29,13 @@
 G_BEGIN_DECLS
 
 typedef enum {
+  GST_CV_OBJECT_INFO_TAG_UNDEFINED,
   GST_CV_OBJECT_INFO_TAG_ROI,
   /* GST_CV_OBJECT_INFO_TAG_LANDMARKS */
 } GstCVObjectInfoTag;
+
+GType gst_cv_object_info_tag_get_type (void);
+#define GST_CV_OBJECT_INFO_TAG (gst_cv_object_info_tag_get_type ())
 
 typedef struct _GstCVObjectInfo GstCVObjectInfo;
 GType gst_cv_object_info_get_type ();
