@@ -24,6 +24,7 @@
 #include <gst/gst.h>
 #include "dlib/gstcvdlibobjectdetecthog.h"
 #include "improc/gstcvscale.h"
+#include "improc/gstcvdraw.h"
 
 
 static gboolean
@@ -35,6 +36,8 @@ cv_init (GstPlugin * plugin)
   gst_element_register (plugin, "cvscale",
       GST_RANK_NONE, gst_cv_scale_get_type ());
 
+  gst_element_register (plugin, "cvdraw",
+      GST_RANK_NONE, gst_cv_draw_get_type ());
 
   return TRUE;
 }

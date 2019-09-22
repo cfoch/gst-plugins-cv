@@ -5,6 +5,7 @@ cv_sources = [
   'multiroimeta.c',
   'objectinfo.c',
   'objectinfodraw.cpp',
+  'objectinfocentroid.c',
   'objectinfomap.c',
   'objectinfomapmeta.c',
 ]
@@ -16,6 +17,7 @@ cv_headers = [
   'multiroimeta.h',
   'objectinfo.h',
   'objectinfodraw.h',
+  'objectinfocentroid.h',
   'objectinfomap.h',
   'objectinfomapmeta.h'
 ]
