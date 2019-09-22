@@ -23,6 +23,7 @@
 
 #include <gst/opencv/gstopencvvideofilter.h>
 #include <gst/cv/cv-prelude.h>
+#include <gst/cv/dupscalemeta.h>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>

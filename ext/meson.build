@@ -1,5 +1,6 @@
 gstcv_sources = [
   join_paths('dlib', 'gstcvdlibobjectdetecthog.cpp'),
+  join_paths('improc', 'gstcvscale.cpp'),
   'gstcv.cpp'
 ]
 
