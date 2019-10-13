@@ -163,6 +163,7 @@ void
 gst_cv_object_detect_register_face (GstCVObjectDetect *self,
     graphene_rect_t *rectangle, GstCVObjectDetectContext *ctx)
 {
+  /* TODO: Communicate rectangle coordinates info. */
   if (self->draw)
     draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);
 }
