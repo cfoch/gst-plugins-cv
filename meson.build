@@ -34,17 +34,22 @@ soversion = 0
 libversion = '@0@.@1@.0'.format(soversion, gst_version_minor.to_int() * 100 + gst_version_micro.to_int())
 
 # GStreamer dependencies
+gst_dep = dependency('gstreamer-1.0', version : gst_req,
+  fallback : ['gstreamer', 'gst_dep'])
 gstbase_dep = dependency('gstreamer-base-1.0', version : gst_req,
   fallback : ['gstreamer', 'gst_base_dep'])
 
+gio_dep = dependency('gio-2.0')
 opencv_dep = dependency('opencv', version : '>= 3.0.0', required: false)
 if not opencv_dep.found()
   opencv_dep = dependency('opencv4', version : '>= 4.0.0', required: true)
 endif
+dlib_dep = dependency('dlib-1', required : false)
 graphene_dep = dependency('graphene-1.0', version : ['>= 1.7.0'],
   required : true)
 
 subdir('gst-libs')
+subdir('ext')
 
 python3 = import('python').find_installation()
 run_command(python3, '-c', 'import shutil; shutil.copy("hooks/pre-commit.hook", ".git/hooks/pre-commit")')
