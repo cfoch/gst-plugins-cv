@@ -1,9 +1,11 @@
 cv_sources = [
-  'gstcvobjectdetect.cpp'
+  'gstcvobjectdetect.cpp',
+  'utils.c'
 ]
 
 cv_headers = [
-  'gstcvobjectdetect.h'
+  'gstcvobjectdetect.h',
+  'utils.h'
 ]
 
 if opencv_dep.found() and graphene_dep.found()
@@ -15,6 +17,7 @@ if opencv_dep.found() and graphene_dep.found()
     soversion : soversion,
     install : true,
     dependencies : [
+      gio_dep,
       gstbase_dep,
       graphene_dep,
       opencv_dep
@@ -23,7 +26,7 @@ if opencv_dep.found() and graphene_dep.found()
 
   gstcv_dep = declare_dependency(link_with: gstcv,
     include_directories : [libsinc],
-    dependencies : [opencv_dep])
+    dependencies : [opencv_dep, gio_dep])
 
   install_headers(cv_headers, subdir : 'gstreamer-1.0/gst/cv')
 
