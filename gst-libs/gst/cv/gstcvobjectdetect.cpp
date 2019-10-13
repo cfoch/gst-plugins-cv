@@ -23,9 +23,11 @@
 #endif
 
 #include "gstcvobjectdetect.h"
+#include "objectinfomapmeta.h"
 
 struct _GstCVObjectDetectContext
 {
+  gint index;
   cv::Mat img;
   GstBuffer *buf;
   gdouble unscale_factor;
@@ -36,6 +38,7 @@ gst_cv_object_detect_context_init (GstCVObjectDetectContext *ctx,
     GstCVObjectDetect *filter, cv::Mat img, GstBuffer *buf, gdouble
     unscale_factor)
 {
+  ctx->index = 0;
   ctx->img = img;
   ctx->buf = buf;
   ctx->unscale_factor = unscale_factor;
@@ -161,11 +164,28 @@ draw_bounding_box (cv::Mat &img, graphene_rect_t *r, gdouble &unscale_factor)
 
 void
 gst_cv_object_detect_register_face (GstCVObjectDetect *self,
-    graphene_rect_t *rectangle, GstCVObjectDetectContext *ctx)
+    graphene_rect_t *rectangle, gpointer user_data)
 {
-  /* TODO: Communicate rectangle coordinates info. */
+  GstCVObjectDetectContext *ctx = (GstCVObjectDetectContext *) user_data;
+  GstCVObjectInfoMapMeta *meta;
+  GstCVObjectInfoMap *map;
+  GstCVObjectInfo *info;
+
+  meta = (GstCVObjectInfoMapMeta *) (gst_buffer_get_meta (ctx->buf,
+      GST_CV_OBJECT_INFO_MAP_META_API_TYPE));
+  if (!meta)
+    meta = gst_buffer_add_cv_object_info_map_meta (ctx->buf);
+
+  map = gst_cv_object_info_map_meta_get_object_info_map (meta);
+  info = gst_cv_object_info_new (GST_ELEMENT (self), GST_CV_OBJECT_INFO_TAG_ROI,
+      GRAPHENE_TYPE_RECT, rectangle);
+
+  gst_cv_object_info_map_insert_object_info_at_index (map, ctx->index, info);
+
   if (self->draw)
     draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);
+
+  ctx->index++;
 }
 
 static void

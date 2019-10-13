@@ -74,9 +74,9 @@ GST_CV_API
 gboolean gst_cv_object_detect_plugin_init   (GstPlugin * plugin);
 
 GST_CV_API
-void     gst_cv_object_detect_register_face (GstCVObjectDetect *       self,
-                                             graphene_rect_t *         rectangle,
-                                             GstCVObjectDetectContext *ctx);
+void     gst_cv_object_detect_register_face (GstCVObjectDetect * self,
+                                             graphene_rect_t *   rectangle,
+                                             gpointer            user_data);
 
 G_END_DECLS
 
