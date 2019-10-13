@@ -10,7 +10,7 @@
 #
 
 SCRIPT=$(realpath $0)
-SCRIPT_DIR=$(dirname "$SCRIPT")
+ROOT_DIR="$(git rev-parse --show-toplevel)"
 
 check_command() {
   local program=$1
@@ -104,7 +104,7 @@ INDENT_PARAMETERS="--braces-on-if-line \
   --indent-level2 \
   --leave-preprocessor-space"
 
-UNCRUSTIFY_CONFIG_FILE="$SCRIPT_DIR/data/uncrustify.cfg"
+UNCRUSTIFY_CONFIG_FILE="$ROOT_DIR/scripts/data/uncrustify.cfg"
 
 run_indent() {
   local nf=$1
@@ -134,3 +134,4 @@ check_coding_style() {
     run_uncrustify $nf $newfile
   fi
 }
+
