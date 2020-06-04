@@ -50,6 +50,7 @@ graphene_dep = dependency('graphene-1.0', version : ['>= 1.7.0'],
 
 subdir('gst-libs')
 subdir('ext')
+subdir('tests')
 
 python3 = import('python').find_installation()
 run_command(python3, '-c', 'import shutil; shutil.copy("hooks/pre-commit.hook", ".git/hooks/pre-commit")')
