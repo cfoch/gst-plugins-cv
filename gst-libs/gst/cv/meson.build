@@ -1,13 +1,21 @@
 cv_sources = [
   'gstcvobjectdetect.cpp',
   'dupscalemeta.cpp',
-  'utils.c'
+  'utils.c',
+  'object/info/objectinfo.c',
+  'object/info/objectinfomap.c',
+  'object/info/objectinfomapcache.c',
+  'object/info/objectinfomapmeta.c',
 ]
 
 cv_headers = [
   'gstcvobjectdetect.h',
   'dupscalemeta.h',
-  'utils.h'
+  'utils.h',
+  'object/info/objectinfo.h',
+  'object/info/objectinfomap.h',
+  'object/info/objectinfomapcache.h',
+  'object/info/objectinfomapmeta.h',
 ]
 
 if opencv_dep.found() and graphene_dep.found()
@@ -20,6 +28,7 @@ if opencv_dep.found() and graphene_dep.found()
     install : true,
     dependencies : [
       gio_dep,
+      gst_dep,
       gstbase_dep,
       graphene_dep,
       opencv_dep
@@ -28,7 +37,7 @@ if opencv_dep.found() and graphene_dep.found()
 
   gstcv_dep = declare_dependency(link_with: gstcv,
     include_directories : [libsinc],
-    dependencies : [opencv_dep, gio_dep])
+    dependencies : [opencv_dep, gio_dep, gst_dep])
 
   install_headers(cv_headers, subdir : 'gstreamer-1.0/gst/cv')
 
