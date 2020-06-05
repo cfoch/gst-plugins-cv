@@ -16,6 +16,7 @@ cv_headers = [
   'object/info/objectinfomap.h',
   'object/info/objectinfomapcache.h',
   'object/info/objectinfomapmeta.h',
+  'object/info/objectinfoutils.h',
 ]
 
 if opencv_dep.found() and graphene_dep.found()
