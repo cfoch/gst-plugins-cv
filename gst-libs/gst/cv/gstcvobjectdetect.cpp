@@ -23,9 +23,12 @@
 #endif
 
 #include "gstcvobjectdetect.h"
+#include "object/info/objectinfomapmeta.h"
+#include "object/info/objectinfoutils.h"
 
 struct _GstCVObjectDetectContext
 {
+  guint index;
   cv::Mat img;
   GstBuffer *buf;
   gdouble unscale_factor;
@@ -36,6 +39,7 @@ gst_cv_object_detect_context_init (GstCVObjectDetectContext *ctx,
     GstCVObjectDetect *filter, cv::Mat img, GstBuffer *buf, gdouble
     unscale_factor)
 {
+  ctx->index = 0;
   ctx->img = img;
   ctx->buf = buf;
   ctx->unscale_factor = unscale_factor;
@@ -58,7 +62,8 @@ enum
 enum
 {
   PROP_0,
-  PROP_DRAW
+  PROP_DRAW,
+  PROP_SUB_KEY,
 };
 
 #define parent_class gst_cv_object_detect_parent_class
@@ -103,6 +108,12 @@ gst_cv_object_detect_class_init (GstCVObjectDetectClass *klass)
       "Wheter to draw the ROI of the detect objects.", DEFAULT_PROP_DRAW,
       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+  g_object_class_install_property (gobject_class, PROP_SUB_KEY,
+      g_param_spec_boxed ("sub-key", "Sub-key", "A structured key useful to "
+      "look up the output object info. This key will be extended with the "
+      "structure 'type=roi,index=%d'.", GST_TYPE_STRUCTURE,
+      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
   klass->detect = NULL;
 }
 
@@ -126,6 +137,11 @@ gst_cv_object_detect_set_property (GObject *object, guint prop_id, const
     case PROP_DRAW:
       self->draw = g_value_get_boolean (value);
       break;
+    case PROP_SUB_KEY:
+      if (self->sub_key)
+        gst_structure_free (self->sub_key);
+      self->sub_key = GST_STRUCTURE (g_value_dup_boxed (value));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -142,6 +158,9 @@ gst_cv_object_detect_get_property (GObject *object, guint prop_id,
     case PROP_DRAW:
       g_value_set_boolean (value, self->draw);
       break;
+    case PROP_SUB_KEY:
+      g_value_set_boxed (value, self->sub_key);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -156,13 +175,72 @@ draw_bounding_box (cv::Mat &img, graphene_rect_t *r, gdouble &unscale_factor)
   cv::rectangle (img, box, DEFAULT_BOUNDING_BOX_COLOR);
 }
 
+static GstStructure *
+gst_cv_object_detect_new_key (GstCVObjectDetect *self,
+    GstStructure *base_sub_key, guint index)
+{
+  GstStructure *sub_key;
+  gchar *element_name;
+
+  element_name = gst_element_get_name (self);
+
+  sub_key = gst_structure_copy (base_sub_key);
+  gst_structure_set (sub_key, GST_CV_OBJECT_INFO_SUB_KEY_ELEMENT,
+      GST_TYPE_CV_OBJECT_INFO_SUB_KEY_ELEMENT, element_name,
+      GST_CV_OBJECT_INFO_SUB_KEY_TYPE, GST_TYPE_CV_OBJECT_INFO_SUB_KEY_TYPE,
+      GST_CV_OBJECT_INFO_SUB_KEY_TYPE_ROI, NULL);
+
+  g_free (element_name);
+
+  return sub_key;
+}
+
+static GstCVObjectInfo *
+new_object_info (graphene_rect_t *rectangle, guint index)
+{
+  GstStructure *params;
+  GValue rectangle_value = G_VALUE_INIT;
+
+  params = gst_structure_new ("cv", GST_CV_OBJECT_INFO_SUB_PARAM_INDEX,
+      GST_TYPE_CV_OBJECT_INFO_SUB_PARAM_INDEX, index, NULL);
+
+  g_value_init (&rectangle_value, GRAPHENE_TYPE_RECT);
+  g_value_set_boxed (&rectangle_value, rectangle);
+
+  return gst_cv_object_info_new_with_params (&rectangle_value, params);
+}
+
 void
 gst_cv_object_detect_register_face (GstCVObjectDetect *self,
-    graphene_rect_t *rectangle, GstCVObjectDetectContext *ctx)
+    graphene_rect_t *rectangle, gpointer user_data)
 {
-  /* TODO: Communicate rectangle coordinates info. */
+  GstCVObjectDetectContext *ctx = (GstCVObjectDetectContext *) user_data;
+  GstCVObjectInfoMapMeta *meta;
+  GstCVObjectInfoMap *map;
+  GstCVObjectInfo *object_info;
+  GstStructure *key;
+
+  meta = (GstCVObjectInfoMapMeta *) (gst_buffer_get_meta (ctx->buf,
+      GST_CV_OBJECT_INFO_MAP_META_API_TYPE));
+  if (!meta)
+    meta = gst_buffer_add_cv_object_info_map_meta (ctx->buf);
+
+  map = gst_cv_object_info_map_meta_get_object_info_map (meta);
+
+  key = gst_cv_object_detect_new_key (self, self->sub_key, ctx->index);
+
+  object_info = new_object_info (rectangle, ctx->index);
+
+  if (!gst_cv_object_info_map_insert (map, key, object_info)) {
+    gst_cv_object_info_free (object_info);
+    GST_ERROR_OBJECT (self, "Cannot add object %d information to buffer meta.",
+        ctx->index);
+  }
+
   if (self->draw)
     draw_bounding_box (ctx->img, rectangle, ctx->unscale_factor);
+
+  ctx->index++;
 }
 
 static void
