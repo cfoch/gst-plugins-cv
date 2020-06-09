@@ -27,10 +27,12 @@
 struct _GstCVDrawPrivate
 {
   GstPad *sinkpad;
+  GstElement *peer_element;
   gdouble unscale_factor;
   cv::Mat *img;
   GstStructure *sub_key;
   GstStructure *params;
+  gboolean on_peer;
 };
 
 GST_DEBUG_CATEGORY_STATIC (gst_cv_draw_debug);
@@ -38,12 +40,14 @@ GST_DEBUG_CATEGORY_STATIC (gst_cv_draw_debug);
 
 /* Default property values */
 #define DEFAULT_COLOR               cv::Scalar (0, 255, 0)
+#define DEFAULT_ON_PEER             FALSE
 
 enum
 {
   PROP_0,
   PROP_SUB_KEY,
   PROP_PARAMS,
+  PROP_ON_PEER,
 };
 
 #define parent_class gst_cv_draw_parent_class
@@ -109,6 +113,13 @@ gst_cv_draw_class_init (GstCVDrawClass *klass)
       "where param1, param2... should be strings.", GST_TYPE_STRUCTURE,
       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+  g_object_class_install_property (gobject_class, PROP_ON_PEER,
+      g_param_spec_boolean ("on-peer", "On peer element",
+      "Extends the 'params' "
+      "property with element=<peer_element_name>. This is useful to filter "
+      "objects info by the peer element name.", DEFAULT_ON_PEER,
+      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
   gst_element_class_set_static_metadata (element_class, "cvdraw",
       "Filter/Effect/Video",
       "Draws the info contained in the GstObjectInfoMapMeta structure.",
@@ -123,6 +134,8 @@ gst_cv_draw_init (GstCVDraw *self)
 {
   self->priv = (GstCVDrawPrivate *) gst_cv_draw_get_instance_private (self);
   self->priv->sinkpad = gst_element_get_static_pad (GST_ELEMENT (self), "sink");
+  self->priv->peer_element = NULL;
+  self->priv->on_peer = DEFAULT_ON_PEER;
   gst_opencv_video_filter_set_in_place (GST_OPENCV_VIDEO_FILTER_CAST (self),
       TRUE);
 }
@@ -144,6 +157,9 @@ gst_cv_draw_set_property (GObject *object, guint prop_id, const GValue *value,
         gst_structure_free (self->priv->params);
       self->priv->params = GST_STRUCTURE (g_value_dup_boxed (value));
       break;
+    case PROP_ON_PEER:
+      self->priv->on_peer = g_value_get_boolean (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -162,6 +178,9 @@ gst_cv_draw_get_property (GObject *object, guint prop_id, GValue *value,
       break;
     case PROP_PARAMS:
       g_value_set_boxed (value, self->priv->params);
+      break;
+    case PROP_ON_PEER:
+      g_value_set_boolean (value, self->priv->on_peer);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -270,6 +289,27 @@ gst_cv_draw_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf, cv::Mat
   cv::Mat scaled_frame;
 
   self->priv->img = NULL;
+
+  if (self->priv->on_peer && !self->priv->peer_element) {
+    GstPad *peerpad;
+    gchar *peer_element_name;
+
+    peerpad = gst_pad_get_peer (self->priv->sinkpad);
+    if (!peerpad)
+      return GST_FLOW_ERROR;
+    self->priv->peer_element = GST_ELEMENT (gst_pad_get_parent (peerpad));
+    if (!self->priv->peer_element)
+      return GST_FLOW_ERROR;
+
+    if (!self->priv->sub_key)
+      self->priv->sub_key = gst_structure_new_empty ("cv");
+
+    peer_element_name = gst_element_get_name (self->priv->peer_element);
+    gst_structure_set (self->priv->sub_key, GST_CV_OBJECT_INFO_SUB_KEY_ELEMENT,
+        GST_TYPE_CV_OBJECT_INFO_SUB_KEY_ELEMENT, peer_element_name, NULL);
+
+    g_free (peer_element_name);
+  }
 
   meta = (GstCVObjectInfoMapMeta *) (gst_buffer_get_meta (buf,
       GST_CV_OBJECT_INFO_MAP_META_API_TYPE));
