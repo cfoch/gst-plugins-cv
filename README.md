@@ -42,3 +42,38 @@ This is a filter to scale down (or up) a frame. This element is intended to be u
 ```
 gst-launch-1.0 v4l2src ! videoconvert ! cvscale scale-factor=0.25 ! cvdlibobjectdetecthog model-location=model.dat draw=1 ! videoconvert ! xvimagesink
 ```
+
+#### cvdraw
+This is a filter to draw object info received in the buffer meta.
+
+Draw everything:
+```
+gst-launch-1.0 -v v4l2src ! videoconvert ! \
+    cvdlibobjectdetecthog model-location=model.dat sub-key=cv,label=face ! cvdraw ! \
+    videoconvert ! xvimagesink
+```
+
+Draw everything with sub key `label=face` and `element=detect`:
+```
+gst-launch-1.0 -v v4l2src ! videoconvert ! \
+    cvdlibobjectdetecthog name=detect model-location=model.dat sub-key=cv,label=face,element=detect ! \
+    cvdraw sub-key=cv,label=face,element=detect ! \
+    videoconvert ! xvimagesink
+```
+
+Or you can automatically add `element=detect` or whatever the peer (previous) element is:
+```
+gst-launch-1.0 -v v4l2src ! videoconvert ! \
+    cvdlibobjectdetecthog name=detect model-location=model.dat sub-key=cv,label=face ! \
+    cvdraw on-peer=true sub-key=cv,label=face ! \
+    videoconvert ! xvimagesink
+```
+*However, if `element=foo` is set explicitly on the `sub-key` property, it will be overriden with the peer.*
+
+You can also draw whatever is on the params of object info (only index param supported for now):
+```
+gst-launch-1.0 -v v4l2src ! videoconvert ! \
+    cvdlibobjectdetecthog name=detect model-location=../facedetection-hog.svm sub-key=cv,label=face ! \
+    cvdraw on-peer=true sub-key=cv,label=face params="cv,params=<index,other_param>" ! \
+    videoconvert ! xvimagesink
+```
