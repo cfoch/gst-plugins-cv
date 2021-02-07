@@ -23,6 +23,7 @@
 #endif
 
 #include "gstcvdraw.h"
+#include "../utils/gstcvobjectcache.h"
 
 struct _GstCVDrawPrivate
 {
@@ -33,6 +34,10 @@ struct _GstCVDrawPrivate
   GstStructure *sub_key;
   GstStructure *params;
   gboolean on_peer;
+  gchar *on_cache_id;
+  guint64 last_n_frames;
+
+  guint64 n_frame;
 };
 
 GST_DEBUG_CATEGORY_STATIC (gst_cv_draw_debug);
@@ -40,7 +45,10 @@ GST_DEBUG_CATEGORY_STATIC (gst_cv_draw_debug);
 
 /* Default property values */
 #define DEFAULT_COLOR               cv::Scalar (0, 255, 0)
+#define DEFAULT_CACHE_COLOR         cv::Scalar (255, 0, 0)
 #define DEFAULT_ON_PEER             FALSE
+#define DEFAULT_ON_CACHE_ID         NULL
+#define DEFAULT_LAST_N_FRAMES       10
 
 enum
 {
@@ -48,6 +56,8 @@ enum
   PROP_SUB_KEY,
   PROP_PARAMS,
   PROP_ON_PEER,
+  PROP_ON_CACHE_ID,
+  PROP_LAST_N_FRAMES,
 };
 
 #define parent_class gst_cv_draw_parent_class
@@ -79,6 +89,9 @@ gst_cv_draw_finalize (GObject *obj)
 
   if (self->priv->params)
     gst_structure_free (self->priv->params);
+
+  if (self->priv->on_cache_id)
+    g_free (self->priv->on_cache_id);
 
   G_OBJECT_CLASS (parent_class)->finalize (obj);
 }
@@ -120,6 +133,16 @@ gst_cv_draw_class_init (GstCVDrawClass *klass)
       "objects info by the peer element name.", DEFAULT_ON_PEER,
       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
+  g_object_class_install_property (gobject_class, PROP_ON_CACHE_ID,
+      g_param_spec_string ("on-cache-id", "On cache id", "Restrict drawing "
+      "taking info from the cache with the given id.", DEFAULT_ON_CACHE_ID,
+      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_LAST_N_FRAMES,
+      g_param_spec_uint64 ("last-n-frames", "Last N Frames",
+      "Draw the last n-frames.", 0, G_MAXUINT64, DEFAULT_LAST_N_FRAMES,
+      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
   gst_element_class_set_static_metadata (element_class, "cvdraw",
       "Filter/Effect/Video",
       "Draws the info contained in the GstObjectInfoMapMeta structure.",
@@ -136,6 +159,11 @@ gst_cv_draw_init (GstCVDraw *self)
   self->priv->sinkpad = gst_element_get_static_pad (GST_ELEMENT (self), "sink");
   self->priv->peer_element = NULL;
   self->priv->on_peer = DEFAULT_ON_PEER;
+  self->priv->on_cache_id = DEFAULT_ON_CACHE_ID;
+  self->priv->last_n_frames = DEFAULT_LAST_N_FRAMES;
+
+  self->priv->n_frame = 0;
+
   gst_opencv_video_filter_set_in_place (GST_OPENCV_VIDEO_FILTER_CAST (self),
       TRUE);
 }
@@ -160,6 +188,12 @@ gst_cv_draw_set_property (GObject *object, guint prop_id, const GValue *value,
     case PROP_ON_PEER:
       self->priv->on_peer = g_value_get_boolean (value);
       break;
+    case PROP_ON_CACHE_ID:
+      self->priv->on_cache_id = g_value_dup_string (value);
+      break;
+    case PROP_LAST_N_FRAMES:
+      self->priv->last_n_frames = g_value_get_uint64 (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -182,17 +216,29 @@ gst_cv_draw_get_property (GObject *object, guint prop_id, GValue *value,
     case PROP_ON_PEER:
       g_value_set_boolean (value, self->priv->on_peer);
       break;
+    case PROP_ON_CACHE_ID:
+      g_value_set_string (value, self->priv->on_cache_id);
+      break;
+    case PROP_LAST_N_FRAMES:
+      g_value_set_uint64 (value, self->priv->last_n_frames);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
 
+static cv::Scalar
+gst_cv_draw_get_default_color (GstCVDraw *self)
+{
+  return !self->priv->on_cache_id ? DEFAULT_COLOR : DEFAULT_CACHE_COLOR;
+}
+
 static void
 gst_cv_draw_draw_object_info (GstCVDraw *self, GstCVObjectInfo *info)
 {
   gst_cv_object_info_draw (info, self->priv->unscale_factor, *self->priv->img,
-      DEFAULT_COLOR);
+      gst_cv_draw_get_default_color (self));
 }
 
 static void
@@ -209,7 +255,7 @@ gst_cv_draw_draw_id (GstCVDraw *self, GstCVObjectInfo *reference_object_info,
   cv::Point unscaled_centroid = cv::Point (scaled_centroid.x,
       scaled_centroid.y) * unscale_factor;
   cv::putText (*self->priv->img, std::to_string (index), unscaled_centroid,
-      cv::FONT_HERSHEY_SIMPLEX, 1.0, DEFAULT_COLOR);
+      cv::FONT_HERSHEY_SIMPLEX, 1.0, gst_cv_draw_get_default_color (self));
 }
 
 static void
@@ -279,9 +325,27 @@ _get_scaled_frame_and_unscale_factor (GstBuffer *buf, cv::Mat input_frame,
   }
 }
 
+static void
+gst_cv_draw_map (GstCVDraw *self, GstCVObjectInfoMap *map,
+    GstCVObjectInfoMapFunc func)
+{
+  if (self->priv->sub_key) {
+    gst_cv_object_info_map_foreach_with_sub_key (map, self->priv->sub_key,
+        (GstCVObjectInfoMapFunc) _draw, self);
+  } else {
+    gst_cv_object_info_map_foreach (map, (GstCVObjectInfoMapFunc) _draw, self);
+  }
+}
+
+static void
+_foreach_cache_func (guint64 key, GstCVObjectInfoMap *value, gpointer user_data)
+{
+  GstCVDraw *self = GST_CV_DRAW (user_data);
+  gst_cv_draw_map (self, value, (GstCVObjectInfoMapFunc) _draw);
+}
+
 static GstFlowReturn
-gst_cv_draw_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf, cv::Mat
-    img)
+_cv_draw_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf, cv::Mat img)
 {
   GstCVDraw *self = GST_CV_DRAW (base);
   GstCVObjectInfoMapMeta *meta;
@@ -311,26 +375,42 @@ gst_cv_draw_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf, cv::Mat
     g_free (peer_element_name);
   }
 
-  meta = (GstCVObjectInfoMapMeta *) (gst_buffer_get_meta (buf,
-      GST_CV_OBJECT_INFO_MAP_META_API_TYPE));
-  if (!meta) {
-    GST_WARNING_OBJECT (self,
-        "Nothing to do. GstCVObjectInfoMapMeta was not found.");
-    return GST_FLOW_OK;
-  }
-
   self->priv->img = &img;
   _get_scaled_frame_and_unscale_factor (buf, img, scaled_frame,
       &self->priv->unscale_factor);
 
-  map = gst_cv_object_info_map_meta_get_object_info_map (meta);
+  if (!self->priv->on_cache_id) {
+    meta = (GstCVObjectInfoMapMeta *) (gst_buffer_get_meta (buf,
+        GST_CV_OBJECT_INFO_MAP_META_API_TYPE));
+    if (!meta) {
+      GST_WARNING_OBJECT (self,
+          "Nothing to do. GstCVObjectInfoMapMeta was not found.");
+      return GST_FLOW_OK;
+    }
 
-  if (self->priv->sub_key) {
-    gst_cv_object_info_map_foreach_with_sub_key (map, self->priv->sub_key,
-        (GstCVObjectInfoMapFunc) _draw, self);
+    map = gst_cv_object_info_map_meta_get_object_info_map (meta);
+    gst_cv_draw_map (self, map, (GstCVObjectInfoMapFunc) _draw);
   } else {
-    gst_cv_object_info_map_foreach (map, (GstCVObjectInfoMapFunc) _draw, self);
+    GstCVObjectInfoMapNamedCache *named_cache;
+    GstCVObjectInfoMapCache *cache;
+
+    named_cache = gst_cv_object_cache_get_default_named_cache ();
+    cache = gst_cv_object_info_map_named_cache_lookup (named_cache,
+        self->priv->on_cache_id);
+
+    if (cache)
+      gst_cv_object_info_map_cache_foreach (cache, _foreach_cache_func, self);
   }
 
   return GST_FLOW_OK;
+}
+
+static GstFlowReturn
+gst_cv_draw_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf, cv::Mat
+    img)
+{
+  GstCVDraw *self = GST_CV_DRAW (base);
+
+  self->priv->n_frame++;
+  return _cv_draw_transform_ip (base, buf, img);
 }
