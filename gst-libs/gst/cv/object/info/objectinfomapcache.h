@@ -28,26 +28,38 @@ G_BEGIN_DECLS
 
 typedef struct _GstCVObjectInfoMapCache GstCVObjectInfoMapCache;
 
+typedef void (*GstCVObjectInfoMapCacheFunc) (guint64 key,
+                                             GstCVObjectInfoMap * value,
+                                             gpointer user_data);
 
-GstCVObjectInfoMapCache * gst_cv_object_info_map_cache_new              (guint max_size);
+GstCVObjectInfoMapCache * gst_cv_object_info_map_cache_new                       (guint max_size);
 
-GstCVObjectInfoMapCache * gst_cv_object_info_map_cache_new_with_sub_key (guint max_size,
-                                                                         GstStructure * info_map_sub_key_filter);
+guint                     gst_cv_object_info_map_cache_get_size                  (GstCVObjectInfoMapCache * self);
 
-guint                     gst_cv_object_info_map_cache_get_size         (GstCVObjectInfoMapCache * self);
+guint                     gst_cv_object_info_map_cache_get_max_size              (GstCVObjectInfoMapCache * self);
 
-guint                     gst_cv_object_info_map_cache_get_max_size     (GstCVObjectInfoMapCache * self);
+void                      gst_cv_object_info_map_cache_destroy                   (GstCVObjectInfoMapCache * self);
 
-GstStructure *            gst_cv_object_info_map_cache_get_sub_key      (GstCVObjectInfoMapCache * self);
+gboolean                  gst_cv_object_info_map_cache_insert                    (GstCVObjectInfoMapCache * self,
+                                                                                  guint64 frame_number,
+                                                                                  GstCVObjectInfoMap * map);
+                                                                                
+gboolean                  gst_cv_object_info_map_cache_insert_with_sub_key       (GstCVObjectInfoMapCache * self,
+                                                                                  guint64 frame_number,
+                                                                                  GstCVObjectInfoMap * map,
+                                                                                  GstStructure * sub_key);
 
-void                      gst_cv_object_info_map_cache_destroy          (GstCVObjectInfoMapCache * self);
+GstCVObjectInfoMap *      gst_cv_object_info_map_cache_lookup                    (GstCVObjectInfoMapCache * self,
+                                                                                  guint64 frame_number);
 
-gboolean                  gst_cv_object_info_map_cache_insert           (GstCVObjectInfoMapCache * self,
-                                                                         guint64 frame_number,
-                                                                         GstCVObjectInfoMap * map);
+gboolean                  gst_cv_object_info_map_cache_extend_value_with_sub_key (GstCVObjectInfoMapCache * self,
+                                                                                  guint64 frame_number,
+                                                                                  GstCVObjectInfoMap * map,
+                                                                                  GstStructure * sub_key);
 
-GstCVObjectInfo *         gst_cv_object_info_map_cache_lookup           (GstCVObjectInfoMapCache * self,
-                                                                         guint64 frame_number);
+void                      gst_cv_object_info_map_cache_foreach                   (GstCVObjectInfoMapCache * self,
+                                                                                  GstCVObjectInfoMapCacheFunc func,
+                                                                                  gpointer user_data);
 
 G_END_DECLS
 
