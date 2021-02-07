@@ -53,6 +53,10 @@ GstCVObjectInfoMap * gst_cv_object_info_map_copy                   (GstCVObjectI
 GstCVObjectInfoMap * gst_cv_object_info_map_copy_with_sub_key      (GstCVObjectInfoMap * self,
                                                                     GstStructure * sub_key);
 
+gboolean             gst_cv_object_info_map_merge_with_sub_key     (GstCVObjectInfoMap * self,
+                                                                    GstCVObjectInfoMap * other,
+                                                                    GstStructure *       sub_key);
+
 gboolean             gst_cv_object_info_map_insert                 (GstCVObjectInfoMap * self,
                                                                     GstStructure *       key,
                                                                     GstCVObjectInfo *    value);

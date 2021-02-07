@@ -46,24 +46,11 @@ static void
 test_new ()
 {
   GstCVObjectInfoMapCache *cache;
-  GstStructure *sub_key;
 
   cache = gst_cv_object_info_map_cache_new (5);
   g_assert_cmpint (0, ==, gst_cv_object_info_map_cache_get_size (cache));
   g_assert_cmpint (5, ==, gst_cv_object_info_map_cache_get_max_size (cache));
   gst_cv_object_info_map_cache_destroy (cache);
-
-  sub_key = gst_structure_new_from_string ("whatever, label=(string)face, "
-      "element=(string)element1;");
-
-  cache = gst_cv_object_info_map_cache_new_with_sub_key (5, sub_key);
-  g_assert_cmpint (0, ==, gst_cv_object_info_map_cache_get_size (cache));
-  g_assert_cmpint (5, ==, gst_cv_object_info_map_cache_get_max_size (cache));
-  g_assert_true (gst_structure_is_equal (sub_key,
-          gst_cv_object_info_map_cache_get_sub_key (cache)));
-  gst_cv_object_info_map_cache_destroy (cache);
-
-  gst_structure_free (sub_key);
 }
 
 static void
