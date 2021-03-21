@@ -71,7 +71,7 @@ if check_uncrustify; then
 fi
 
 if test "x$INDENT" = "x" || test "x$UNCRUSTIFY" = "x"; then
-  if check_toolbox; then
+  if check_toolbox && [ ! -f /run/.toolboxenv ]; then
     echo "Running script in toolbox."
     toolbox run bash -c "$SCRIPT $@"
     exit $?
