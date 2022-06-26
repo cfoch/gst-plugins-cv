@@ -40,6 +40,7 @@ struct _GstCVObjectAssignPrivate
   guint64 frame_number;
   GstStructure *sub_key;
   gchar *on_cache_id;
+  guint on_last_n_frames;
 };
 
 struct _GstCVObjectAssignContext
@@ -54,12 +55,14 @@ GST_DEBUG_CATEGORY_STATIC (gst_cv_object_assign_debug);
 
 /* Default property values */
 #define DEFAULT_ON_CACHE_ID         NULL
+#define DEFAULT_ON_LAST_N_FRAMES    1
 
 enum
 {
   PROP_0,
   PROP_SUB_KEY,
-  PROP_ON_CACHE_ID
+  PROP_ON_CACHE_ID,
+  PROP_ON_LAST_N_FRAMES
 };
 
 #define parent_class gst_cv_object_assign_parent_class
@@ -106,6 +109,13 @@ gst_cv_object_assign_class_init (GstCVObjectAssignClass *klass)
       g_param_spec_string ("on-cache-id", "On cache id", "Restrict drawing "
       "taking info from the cache with the given id.", DEFAULT_ON_CACHE_ID,
       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_ON_LAST_N_FRAMES,
+      g_param_spec_uint ("on-last-n-frames", "On last N frames", "Use the last"
+      "N frames. So the cost matrix will be built with the following size: "
+      "m:(objects in current frame) x n:(objects in the current frame - N).", 1,
+      G_MAXUINT, DEFAULT_ON_LAST_N_FRAMES, (GParamFlags) (G_PARAM_READWRITE |
+        G_PARAM_STATIC_STRINGS)));
 }
 
 static void
@@ -117,6 +127,7 @@ gst_cv_object_assign_init (GstCVObjectAssign *self)
 
   self->priv->sub_key = NULL;
   self->priv->frame_number = 0;
+  self->priv->on_last_n_frames = DEFAULT_ON_LAST_N_FRAMES;
 
   gst_opencv_video_filter_set_in_place (GST_OPENCV_VIDEO_FILTER_CAST (self),
       TRUE);
@@ -131,6 +142,9 @@ gst_cv_object_assign_set_property (GObject *object, guint prop_id, const
   switch (prop_id) {
     case PROP_ON_CACHE_ID:
       self->priv->on_cache_id = g_value_dup_string (value);
+      break;
+    case PROP_ON_LAST_N_FRAMES:
+      self->priv->on_last_n_frames = g_value_get_uint (value);
       break;
     case PROP_SUB_KEY:
       if (self->priv->sub_key)
@@ -152,6 +166,9 @@ gst_cv_object_assign_get_property (GObject *object, guint prop_id,
   switch (prop_id) {
     case PROP_ON_CACHE_ID:
       g_value_set_string (value, self->priv->on_cache_id);
+      break;
+    case PROP_ON_LAST_N_FRAMES:
+      g_value_set_uint (value, self->priv->on_last_n_frames);
       break;
     case PROP_SUB_KEY:
       g_value_set_boxed (value, self->priv->sub_key);
@@ -223,6 +240,47 @@ gst_cv_object_assign_get_cost_matrix_info (GstCVObjectAssign *self,
   }
 }
 
+static GstCVObjectInfoMap *
+gst_cv_object_assign_get_prev_object_info_map (GstCVObjectAssign *self,
+    GstCVObjectInfoMapCache *cache)
+{
+  GstCVObjectInfoMap *map;
+  guint i;
+
+  if (self->priv->on_last_n_frames == 1) {
+    if (!(map = gst_cv_object_info_map_cache_lookup (cache,
+        self->priv->frame_number - 1)) || gst_cv_object_info_map_get_size (
+        map) == 0)
+      return NULL;
+  }
+
+  map = gst_cv_object_info_map_new_full (FALSE, FALSE);
+  for (i = 1; i <= self->priv->on_last_n_frames; i++) {
+    GstCVObjectInfoMap *i_map;
+    GstCVObjectInfoMapIter iter;
+    GstStructure *key;
+    GstCVObjectInfo *value;
+
+    if (!(i_map = gst_cv_object_info_map_cache_lookup (cache,
+        self->priv->frame_number - i)))
+      continue;
+
+    gst_cv_object_info_map_iter_init (&iter, i_map);
+    while (gst_cv_object_info_map_iter_next (&iter, &key, &value)) {
+      if (gst_cv_object_info_map_lookup (map, key))
+        continue;
+      gst_cv_object_info_map_insert (map, key, value);
+    }
+  }
+
+  if (gst_cv_object_info_map_get_size (map) == 0) {
+    gst_cv_object_info_map_destroy (map);
+    return NULL;
+  }
+
+  return map;
+}
+
 static GstFlowReturn
 gst_cv_object_assign_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf,
     cv::Mat img)
@@ -256,9 +314,8 @@ gst_cv_object_assign_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf,
       self->priv->on_cache_id)))
     goto ok;
 
-  if (!(prev_object_info_map = gst_cv_object_info_map_cache_lookup (cache,
-      self->priv->frame_number - 1)) || gst_cv_object_info_map_get_size (
-      prev_object_info_map) == 0)
+  if (!(prev_object_info_map = gst_cv_object_assign_get_prev_object_info_map (
+      self, cache)))
     goto ok;
 
   if (self->priv->sub_key)
@@ -365,6 +422,7 @@ gst_cv_object_assign_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf,
     gst_cv_object_info_map_insert (cur_object_info_map, cur_key, cur_val);
   }
 
+  gst_cv_object_info_map_destroy (prev_object_info_map);
   gst_cv_object_info_map_destroy (cur_object_info_map_copy);
 
 ok:

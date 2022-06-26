@@ -53,6 +53,9 @@ gboolean             gst_cv_object_info_map_check_key              (GstStructure
 
 GstCVObjectInfoMap * gst_cv_object_info_map_new                    (void);
 
+GstCVObjectInfoMap * gst_cv_object_info_map_new_full               (gboolean free_key_on_destroy,
+                                                                    gboolean free_value_on_destroy);
+
 void                 gst_cv_object_info_map_destroy                (GstCVObjectInfoMap * self);
 
 GstCVObjectInfoMap * gst_cv_object_info_map_copy                   (GstCVObjectInfoMap * self);

@@ -113,15 +113,19 @@ gst_cv_object_info_map_check_key (GstStructure * key)
 }
 
 GstCVObjectInfoMap *
+gst_cv_object_info_map_new_full (gboolean free_key_on_destroy,
+    gboolean free_value_on_destroy)
+{
+  return g_hash_table_new_full (gst_cv_object_info_map_key_hash,
+      gst_cv_object_info_key_equal,
+      free_key_on_destroy ? gst_cv_object_info_key_free : NULL,
+      free_value_on_destroy ? (GDestroyNotify) gst_cv_object_info_free : NULL);
+}
+
+GstCVObjectInfoMap *
 gst_cv_object_info_map_new ()
 {
-  GHashTable *table;
-
-  table = g_hash_table_new_full (gst_cv_object_info_map_key_hash,
-      gst_cv_object_info_key_equal, gst_cv_object_info_key_free,
-      (GDestroyNotify) gst_cv_object_info_free);
-
-  return table;
+  return gst_cv_object_info_map_new_full (TRUE, TRUE);
 }
 
 void
