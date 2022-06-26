@@ -39,7 +39,7 @@ gst_cv_object_detect_context_init (GstCVObjectDetectContext *ctx,
     GstCVObjectDetect *filter, cv::Mat img, GstBuffer *buf, gdouble
     unscale_factor)
 {
-  ctx->index = 0;
+  ctx->index = gst_cv_object_info_generate_id ();
   ctx->img = img;
   ctx->buf = buf;
   ctx->unscale_factor = unscale_factor;
@@ -223,7 +223,7 @@ gst_cv_object_detect_register_face (GstCVObjectDetect *self,
         ctx->index);
   }
 
-  ctx->index++;
+  ctx->index = gst_cv_object_info_generate_id ();
 }
 
 static void

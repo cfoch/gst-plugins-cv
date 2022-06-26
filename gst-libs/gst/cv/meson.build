@@ -7,6 +7,7 @@ cv_sources = [
   'object/info/objectinfomapcache.c',
   'object/info/objectinfomapnamedcache.c',
   'object/info/objectinfomapmeta.c',
+  'object/info/objectinfoutils.c',
   'object/info/objectinfodraw.cpp',
   'object/info/objectinfocentroid.c',
 ]
