@@ -30,10 +30,13 @@ G_BEGIN_DECLS
 #define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_TYPE        G_TYPE_STRING
 #define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_LABEL       G_TYPE_STRING
 #define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_ELEMENT     G_TYPE_STRING
+#define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_INDEX       G_TYPE_UINT
 /* keys */
 #define GST_CV_OBJECT_INFO_SUB_KEY_TYPE             "type"
 #define GST_CV_OBJECT_INFO_SUB_KEY_LABEL            "label"
 #define GST_CV_OBJECT_INFO_SUB_KEY_ELEMENT          "element"
+#define GST_CV_OBJECT_INFO_SUB_KEY_INDEX            "index"
+
 /* values */
 #define GST_CV_OBJECT_INFO_SUB_KEY_TYPE_ROI         "roi"
 

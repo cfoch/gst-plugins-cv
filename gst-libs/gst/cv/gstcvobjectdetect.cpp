@@ -174,7 +174,8 @@ gst_cv_object_detect_new_key (GstCVObjectDetect *self,
   gst_structure_set (sub_key, GST_CV_OBJECT_INFO_SUB_KEY_ELEMENT,
       GST_TYPE_CV_OBJECT_INFO_SUB_KEY_ELEMENT, element_name,
       GST_CV_OBJECT_INFO_SUB_KEY_TYPE, GST_TYPE_CV_OBJECT_INFO_SUB_KEY_TYPE,
-      GST_CV_OBJECT_INFO_SUB_KEY_TYPE_ROI, NULL);
+      GST_CV_OBJECT_INFO_SUB_KEY_TYPE_ROI, GST_CV_OBJECT_INFO_SUB_KEY_INDEX,
+      GST_TYPE_CV_OBJECT_INFO_SUB_KEY_INDEX, index, NULL);
 
   g_free (element_name);
 

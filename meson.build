@@ -48,9 +48,12 @@ dlib_dep = dependency('dlib-1', required : false)
 graphene_dep = dependency('graphene-1.0', version : ['>= 1.7.0'],
   required : true)
 
+hungarianinc = include_directories('hungarian-algorithm-cpp')
+
 subdir('gst-libs')
 subdir('ext')
 subdir('tests')
 
 python3 = import('python').find_installation()
+
 run_command(python3, '-c', 'import shutil; shutil.copy("hooks/pre-commit.hook", ".git/hooks/pre-commit")')

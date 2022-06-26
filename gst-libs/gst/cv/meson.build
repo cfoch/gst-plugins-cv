@@ -1,5 +1,6 @@
 cv_sources = [
   'gstcvobjectdetect.cpp',
+  'gstcvobjectassign.cpp',
   'dupscalemeta.cpp',
   'utils.c',
   'object/info/objectinfo.c',
@@ -14,6 +15,7 @@ cv_sources = [
 
 cv_headers = [
   'gstcvobjectdetect.h',
+  'gstcvobjectassign.h',
   'dupscalemeta.h',
   'utils.h',
   'object/info/objectinfo.h',

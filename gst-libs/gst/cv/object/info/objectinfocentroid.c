@@ -20,28 +20,44 @@
 
 #include "objectinfocentroid.h"
 
-graphene_point_t GST_CV_OBJECT_INFO_CENTROID_UNDEFINED =
-GRAPHENE_POINT_INIT (-1.f, -1.f);
+// graphene_point_t GST_CV_OBJECT_INFO_CENTROID_UNDEFINED =
+// GRAPHENE_POINT_INIT (-1.f, -1.f);
 
-static void
+static gboolean
 _graphene_rect_get_centroid (GstCVObjectInfo * object_info,
     graphene_point_t * centroid)
 {
   const GValue *internal_value;
   graphene_rect_t *r;
 
+  if (!centroid)
+    return TRUE;
+
   internal_value = gst_cv_object_info_get_value (object_info);
   r = (graphene_rect_t *) g_value_get_boxed (internal_value);
   graphene_rect_get_center (r, centroid);
+
+  return TRUE;
 }
 
-void
+/**
+ * gst_cv_object_info_get_centroid:
+ * @object_info: This #GstCVObjectInfo
+ * @centroid: (nullable): The #graphene_point_t where to set the values to.
+ * 
+ * If the centroid is not NULL, sets the centroid values for the given
+ * @object_info, in the case it can be calculated.
+ *
+ * Returns: TRUE if the centroid is calculable, otherwise FALSE.
+ */
+gboolean
 gst_cv_object_info_get_centroid (GstCVObjectInfo * object_info,
     graphene_point_t * centroid)
 {
   GType type = gst_cv_object_info_get_value_type (object_info);
 
-  *centroid = GST_CV_OBJECT_INFO_CENTROID_UNDEFINED;
+  // *centroid = GST_CV_OBJECT_INFO_CENTROID_UNDEFINED;
   if (type == GRAPHENE_TYPE_RECT)
-    _graphene_rect_get_centroid (object_info, centroid);
+    return _graphene_rect_get_centroid (object_info, centroid);
+  return FALSE;
 }

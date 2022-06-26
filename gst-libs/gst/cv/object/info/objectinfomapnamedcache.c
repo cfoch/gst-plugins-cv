@@ -68,3 +68,25 @@ gst_cv_object_info_map_named_cache_insert (GstCVObjectInfoMapNamedCache * self,
 {
   return g_hash_table_insert (self->cache, g_strdup (cache_id), cache);
 }
+
+static GstCVObjectInfoMapNamedCache *_NAMED_CACHE = NULL;
+
+GstCVObjectInfoMapNamedCache *
+gst_cv_object_info_map_named_cache_get_default ()
+{
+  if (_NAMED_CACHE == NULL)
+    _NAMED_CACHE = gst_cv_object_info_map_named_cache_new ();
+
+  return _NAMED_CACHE;
+}
+
+void
+gst_cv_object_info_map_named_cache_unref (GstCVObjectInfoMapNamedCache * self)
+{
+  gint prev_cache_refcount = GST_MINI_OBJECT_REFCOUNT_VALUE (_NAMED_CACHE);
+
+  gst_mini_object_unref (GST_MINI_OBJECT_CAST (self));
+
+  if (self == _NAMED_CACHE && prev_cache_refcount == 1)
+    _NAMED_CACHE = NULL;
+}

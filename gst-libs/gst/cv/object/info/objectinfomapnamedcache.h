@@ -29,15 +29,18 @@ G_BEGIN_DECLS
 typedef struct _GstCVObjectInfoMapNamedCache GstCVObjectInfoMapNamedCache;
 
 
-GstCVObjectInfoMapNamedCache * gst_cv_object_info_map_named_cache_new    (void);
+GstCVObjectInfoMapNamedCache * gst_cv_object_info_map_named_cache_new         (void);
 
-gboolean                       gst_cv_object_info_map_named_cache_insert (GstCVObjectInfoMapNamedCache * self,
-                                                                          const gchar * cache_id,
-                                                                          GstCVObjectInfoMapCache * cache);
+gboolean                       gst_cv_object_info_map_named_cache_insert      (GstCVObjectInfoMapNamedCache * self,
+                                                                               const gchar * cache_id,
+                                                                               GstCVObjectInfoMapCache * cache);
 
-GstCVObjectInfoMapCache *      gst_cv_object_info_map_named_cache_lookup (GstCVObjectInfoMapNamedCache * self,
-                                                                          const gchar * cache_id);
+GstCVObjectInfoMapCache *      gst_cv_object_info_map_named_cache_lookup      (GstCVObjectInfoMapNamedCache * self,
+                                                                               const gchar * cache_id);
 
+GstCVObjectInfoMapNamedCache * gst_cv_object_info_map_named_cache_get_default (void);
+
+void                           gst_cv_object_info_map_named_cache_unref       (GstCVObjectInfoMapNamedCache * self);
 
 G_END_DECLS
 

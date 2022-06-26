@@ -30,9 +30,9 @@ G_BEGIN_DECLS
 
 #define GST_CV_OBJECT_INFO_CENTROID_IS_UNDEFINED(p) (p.x < 0 && p.y < 0)
 
-void
-gst_cv_object_info_get_centroid (GstCVObjectInfo * object_info,
-	graphene_point_t * centroid);
+gboolean
+gst_cv_object_info_get_centroid (GstCVObjectInfo  * object_info,
+                                 graphene_point_t * centroid);
 
 G_END_DECLS
 
