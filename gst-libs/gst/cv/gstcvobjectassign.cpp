@@ -41,6 +41,7 @@ struct _GstCVObjectAssignPrivate
   GstStructure *sub_key;
   gchar *on_cache_id;
   guint on_last_n_frames;
+  gdouble max_cost;
 };
 
 struct _GstCVObjectAssignContext
@@ -56,13 +57,15 @@ GST_DEBUG_CATEGORY_STATIC (gst_cv_object_assign_debug);
 /* Default property values */
 #define DEFAULT_ON_CACHE_ID         NULL
 #define DEFAULT_ON_LAST_N_FRAMES    1
+#define DEFAULT_MAX_COST            G_MAXDOUBLE
 
 enum
 {
   PROP_0,
   PROP_SUB_KEY,
   PROP_ON_CACHE_ID,
-  PROP_ON_LAST_N_FRAMES
+  PROP_ON_LAST_N_FRAMES,
+  PROP_MAX_COST
 };
 
 #define parent_class gst_cv_object_assign_parent_class
@@ -116,6 +119,11 @@ gst_cv_object_assign_class_init (GstCVObjectAssignClass *klass)
       "m:(objects in current frame) x n:(objects in the current frame - N).", 1,
       G_MAXUINT, DEFAULT_ON_LAST_N_FRAMES, (GParamFlags) (G_PARAM_READWRITE |
         G_PARAM_STATIC_STRINGS)));
+
+  g_object_class_install_property (gobject_class, PROP_MAX_COST,
+      g_param_spec_double ("max-cost", "Max cost", "The max cost to consider "
+      "between centroids.", 0, G_MAXDOUBLE, DEFAULT_MAX_COST,
+      (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 }
 
 static void
@@ -128,6 +136,7 @@ gst_cv_object_assign_init (GstCVObjectAssign *self)
   self->priv->sub_key = NULL;
   self->priv->frame_number = 0;
   self->priv->on_last_n_frames = DEFAULT_ON_LAST_N_FRAMES;
+  self->priv->max_cost = PROP_MAX_COST;
 
   gst_opencv_video_filter_set_in_place (GST_OPENCV_VIDEO_FILTER_CAST (self),
       TRUE);
@@ -151,6 +160,9 @@ gst_cv_object_assign_set_property (GObject *object, guint prop_id, const
         gst_structure_free (self->priv->sub_key);
       self->priv->sub_key = GST_STRUCTURE (g_value_dup_boxed (value));
       break;
+    case PROP_MAX_COST:
+      self->priv->max_cost = g_value_get_double (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -172,6 +184,9 @@ gst_cv_object_assign_get_property (GObject *object, guint prop_id,
       break;
     case PROP_SUB_KEY:
       g_value_set_boxed (value, self->priv->sub_key);
+      break;
+    case PROP_MAX_COST:
+      g_value_set_double (value, self->priv->max_cost);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -272,7 +287,6 @@ gst_cv_object_assign_get_prev_object_info_map (GstCVObjectAssign *self,
       gst_cv_object_info_map_insert (map, key, value);
     }
   }
-
   if (gst_cv_object_info_map_get_size (map) == 0) {
     gst_cv_object_info_map_destroy (map);
     return NULL;
@@ -361,8 +375,10 @@ gst_cv_object_assign_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf,
   /* First insert reassigned indices. */
   for (i = 0; i < (guint) assignment.size (); i++) {
     GstStructure *prev_key, *cur_key, *new_cur_val_params;
-    GstCVObjectInfo *cur_val, *new_cur_val;
+    GstCVObjectInfo *prev_val, *cur_val, *new_cur_val;
     guint prev_index;
+    graphene_point_t prev_centroid, cur_centroid;
+    gdouble cost;
 
     if (assignment[i] == -1)
       continue;
@@ -371,10 +387,20 @@ gst_cv_object_assign_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf,
     cur_val = gst_cv_object_info_map_lookup (cur_object_info_map_copy, cur_key);
     g_assert (cur_val != NULL);
 
+    prev_key = prev_keys[assignment[i]];
+    prev_val = gst_cv_object_info_map_lookup (prev_object_info_map, prev_key);
+
+    g_assert (gst_cv_object_info_get_centroid (cur_val, &cur_centroid));
+    g_assert (gst_cv_object_info_get_centroid (prev_val, &prev_centroid));
+    cost = GST_CV_OBJECT_ASSIGN_CLASS_GET_CLASS (self)->cost (self,
+        cur_centroid, prev_centroid);
+    if (cost > self->priv->max_cost) {
+      assignment[i] = -1;
+      continue;
+    }
+
     new_cur_val = gst_cv_object_info_copy (cur_val);
     new_cur_val_params = gst_cv_object_info_get_params (new_cur_val);
-
-    prev_key = prev_keys[assignment[i]];
 
     /* Update index if in params. */
     gst_structure_get (prev_key, GST_CV_OBJECT_INFO_SUB_KEY_INDEX,
