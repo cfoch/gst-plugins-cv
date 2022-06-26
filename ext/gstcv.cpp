@@ -23,6 +23,7 @@
 
 #include <gst/gst.h>
 #include "dlib/gstcvdlibobjectdetecthog.h"
+#include "hacpp/gstcvhacppobjectassign.h"
 #include "improc/gstcvscale.h"
 #include "improc/gstcvdraw.h"
 #include "utils/gstcvobjectcache.h"
@@ -32,6 +33,9 @@ cv_init (GstPlugin *plugin)
 {
   gst_element_register (plugin, "cvdlibobjectdetecthog", GST_RANK_NONE,
       gst_cv_dlib_object_detect_hog_get_type ());
+
+  gst_element_register (plugin, "cvhacppobjectassign", GST_RANK_NONE,
+      gst_cv_hacpp_object_assign_get_type ());
 
   gst_element_register (plugin, "cvdraw", GST_RANK_NONE,
       gst_cv_draw_get_type ());

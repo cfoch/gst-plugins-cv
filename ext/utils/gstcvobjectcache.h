@@ -62,8 +62,6 @@ GType    gst_cv_object_cache_get_type    (void);
 
 gboolean gst_cv_object_cache_plugin_init (GstPlugin * plugin);
 
-GstCVObjectInfoMapNamedCache * gst_cv_object_cache_get_default_named_cache (void);
-
 G_END_DECLS
 
 #endif /* __GST_CV_OBJECT_CACHE_H__ */
