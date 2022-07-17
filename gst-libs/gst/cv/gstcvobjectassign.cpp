@@ -136,7 +136,7 @@ gst_cv_object_assign_init (GstCVObjectAssign *self)
   self->priv->sub_key = NULL;
   self->priv->frame_number = 0;
   self->priv->on_last_n_frames = DEFAULT_ON_LAST_N_FRAMES;
-  self->priv->max_cost = PROP_MAX_COST;
+  self->priv->max_cost = DEFAULT_MAX_COST;
 
   gst_opencv_video_filter_set_in_place (GST_OPENCV_VIDEO_FILTER_CAST (self),
       TRUE);
