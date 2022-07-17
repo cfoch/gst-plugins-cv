@@ -215,6 +215,35 @@ gst_cv_object_info_map_copy_with_sub_key (GstCVObjectInfoMap * self,
   return copy;
 }
 
+/**
+ * gst_cv_object_info_map_merge_with_sub_key:
+ * @self: This #GstCVObjectInfoMap
+ * @other: The target #GstCVObjectInfoMap to be inserted into @self
+ *
+ * Merges a copy of  @other #GstCVObjectInfoMap into @self. If both share keys,
+ * the value of @other will replace the existing value in @self.
+ *
+ * Returns: FALSE if at least one value will be replaced. Otherwise, TRUE.
+ */
+gboolean
+gst_cv_object_info_map_merge_with_sub_key (GstCVObjectInfoMap * self,
+    GstCVObjectInfoMap * other, GstStructure * sub_key)
+{
+  GstCVObjectInfoMapIter iter;
+  GstStructure *key;
+  GstCVObjectInfo *value;
+  gboolean ret = TRUE;
+
+  gst_cv_object_info_map_iter_init_with_sub_key (&iter, other, sub_key);
+  while (gst_cv_object_info_map_iter_next_with_sub_key (&iter, &key, &value)) {
+    if (!gst_cv_object_info_map_insert_with_check (self,
+            gst_structure_copy (key), gst_cv_object_info_copy (value), FALSE))
+      ret = FALSE;
+  }
+
+  return ret;
+}
+
 gboolean
 gst_cv_object_info_map_iter_next_with_sub_key (GstCVObjectInfoMapIter * iter,
     GstStructure ** key, GstCVObjectInfo ** value)
