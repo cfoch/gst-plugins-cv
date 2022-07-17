@@ -24,8 +24,6 @@
 
 #include "gstcvobjectcache.h"
 
-static GstCVObjectInfoMapNamedCache *_NAMED_CACHE = NULL;
-
 struct _GstCVObjectCachePrivate
 {
   GstStructure *sub_key;
@@ -74,6 +72,8 @@ static void
 gst_cv_object_cache_finalize (GObject *obj)
 {
   GstCVObjectCache *self = GST_CV_OBJECT_CACHE (obj);
+  GstCVObjectInfoMapNamedCache *named_cache =
+      gst_cv_object_info_map_named_cache_get_default ();
 
   if (self->priv->sub_key)
     gst_structure_free (self->priv->sub_key);
@@ -82,13 +82,7 @@ gst_cv_object_cache_finalize (GObject *obj)
     gst_structure_free (self->priv->params);
 
   /* TODO: Mutex here. */
-  if (_NAMED_CACHE) {
-    gint prev_cache_refcount = GST_MINI_OBJECT_REFCOUNT_VALUE (_NAMED_CACHE);
-
-    gst_mini_object_unref (GST_MINI_OBJECT_CAST (_NAMED_CACHE));
-    if (prev_cache_refcount == 1)
-      _NAMED_CACHE = NULL;
-  }
+  gst_cv_object_info_map_named_cache_unref (named_cache);
 
   G_OBJECT_CLASS (parent_class)->finalize (obj);
 }
@@ -127,15 +121,6 @@ gst_cv_object_cache_class_init (GstCVObjectCacheClass *klass)
 
   gst_element_class_add_static_pad_template (element_class, &src_factory);
   gst_element_class_add_static_pad_template (element_class, &sink_factory);
-}
-
-GstCVObjectInfoMapNamedCache *
-gst_cv_object_cache_get_default_named_cache ()
-{
-  if (_NAMED_CACHE == NULL)
-    _NAMED_CACHE = gst_cv_object_info_map_named_cache_new ();
-
-  return _NAMED_CACHE;
 }
 
 static void
@@ -212,7 +197,7 @@ gst_cv_object_cache_transform_ip (GstBaseTransform *base, GstBuffer *buf)
     return GST_FLOW_OK;
   }
 
-  named_cache = gst_cv_object_cache_get_default_named_cache ();
+  named_cache = gst_cv_object_info_map_named_cache_get_default ();
   cache_id = gst_element_get_name (GST_ELEMENT (self));
   map = gst_cv_object_info_map_meta_get_object_info_map (meta);
 

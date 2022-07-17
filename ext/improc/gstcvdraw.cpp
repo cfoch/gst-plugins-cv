@@ -248,8 +248,8 @@ gst_cv_draw_draw_id (GstCVDraw *self, GstCVObjectInfo *reference_object_info,
   graphene_point_t scaled_centroid;
   gdouble unscale_factor = self->priv->unscale_factor;
 
-  gst_cv_object_info_get_centroid (reference_object_info, &scaled_centroid);
-  if (GST_CV_OBJECT_INFO_CENTROID_IS_UNDEFINED (scaled_centroid))
+  if (!gst_cv_object_info_get_centroid (reference_object_info,
+      &scaled_centroid))
     return;
 
   cv::Point unscaled_centroid = cv::Point (scaled_centroid.x,
@@ -394,7 +394,7 @@ _cv_draw_transform_ip (GstOpencvVideoFilter *base, GstBuffer *buf, cv::Mat img)
     GstCVObjectInfoMapNamedCache *named_cache;
     GstCVObjectInfoMapCache *cache;
 
-    named_cache = gst_cv_object_cache_get_default_named_cache ();
+    named_cache = gst_cv_object_info_map_named_cache_get_default ();
     cache = gst_cv_object_info_map_named_cache_lookup (named_cache,
         self->priv->on_cache_id);
 

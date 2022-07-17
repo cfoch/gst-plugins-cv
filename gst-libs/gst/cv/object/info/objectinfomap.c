@@ -37,16 +37,20 @@ gst_cv_object_info_map_key_hash_foreach (GQuark field_id, const GValue * value,
 
   /* Value hash. */
   switch (G_VALUE_TYPE (value)) {
-    case G_TYPE_INT:
+    case G_TYPE_UINT:
     {
-      gint int_value = g_value_get_int (value);
+      gint int_value = g_value_get_uint (value);
       value_hash = g_direct_hash (GINT_TO_POINTER (int_value));
-
       break;
     }
+      {
+        gint int_value = g_value_get_int (value);
+        value_hash = g_direct_hash (GINT_TO_POINTER (int_value));
+        break;
+      }
     case G_TYPE_INT64:
     {
-      gint int_value = g_value_get_int (value);
+      gint int_value = g_value_get_int64 (value);
       value_hash = g_int64_hash (GINT_TO_POINTER (int_value));
       break;
     }
@@ -66,7 +70,7 @@ gst_cv_object_info_map_key_hash_foreach (GQuark field_id, const GValue * value,
   return TRUE;
 }
 
-static guint
+guint
 gst_cv_object_info_map_key_hash (gconstpointer key)
 {
   guint hash = 0;
@@ -78,13 +82,13 @@ gst_cv_object_info_map_key_hash (gconstpointer key)
   return hash;
 }
 
-static gboolean
+gboolean
 gst_cv_object_info_key_equal (gconstpointer k1, gconstpointer k2)
 {
   return gst_structure_is_equal (GST_STRUCTURE (k1), GST_STRUCTURE (k2));
 }
 
-static void
+void
 gst_cv_object_info_key_free (gpointer k)
 {
   gst_structure_free (GST_STRUCTURE (k));
@@ -96,7 +100,8 @@ gst_cv_object_info_map_check_key_foreach_func (GQuark field_id,
 {
   GType type = G_VALUE_TYPE (value);
 
-  return type == G_TYPE_STRING || type == G_TYPE_INT || type == G_TYPE_INT64;
+  return type == G_TYPE_STRING || type == G_TYPE_INT || type == G_TYPE_INT64
+      || type == G_TYPE_UINT;
 }
 
 gboolean
@@ -108,15 +113,19 @@ gst_cv_object_info_map_check_key (GstStructure * key)
 }
 
 GstCVObjectInfoMap *
+gst_cv_object_info_map_new_full (gboolean free_key_on_destroy,
+    gboolean free_value_on_destroy)
+{
+  return g_hash_table_new_full (gst_cv_object_info_map_key_hash,
+      gst_cv_object_info_key_equal,
+      free_key_on_destroy ? gst_cv_object_info_key_free : NULL,
+      free_value_on_destroy ? (GDestroyNotify) gst_cv_object_info_free : NULL);
+}
+
+GstCVObjectInfoMap *
 gst_cv_object_info_map_new ()
 {
-  GHashTable *table;
-
-  table = g_hash_table_new_full (gst_cv_object_info_map_key_hash,
-      gst_cv_object_info_key_equal, gst_cv_object_info_key_free,
-      (GDestroyNotify) gst_cv_object_info_free);
-
-  return table;
+  return gst_cv_object_info_map_new_full (TRUE, TRUE);
 }
 
 void
@@ -150,6 +159,13 @@ gst_cv_object_info_map_lookup (GstCVObjectInfoMap * self,
     const GstStructure * key)
 {
   return g_hash_table_lookup (self, key);
+}
+
+gboolean
+gst_cv_object_info_map_remove (GstCVObjectInfoMap * self,
+    const GstStructure * key)
+{
+  return g_hash_table_remove (self, key);
 }
 
 void

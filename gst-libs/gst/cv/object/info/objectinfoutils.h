@@ -21,6 +21,8 @@
 #ifndef __CV_OBJECT_INFO_UTILS_H__
 #define __CV_OBJECT_INFO_UTILS_H__
 
+#include <glib.h>
+
 G_BEGIN_DECLS
 
 /* Preset (sub) keys */
@@ -28,10 +30,13 @@ G_BEGIN_DECLS
 #define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_TYPE        G_TYPE_STRING
 #define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_LABEL       G_TYPE_STRING
 #define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_ELEMENT     G_TYPE_STRING
+#define GST_TYPE_CV_OBJECT_INFO_SUB_KEY_INDEX       G_TYPE_UINT
 /* keys */
 #define GST_CV_OBJECT_INFO_SUB_KEY_TYPE             "type"
 #define GST_CV_OBJECT_INFO_SUB_KEY_LABEL            "label"
 #define GST_CV_OBJECT_INFO_SUB_KEY_ELEMENT          "element"
+#define GST_CV_OBJECT_INFO_SUB_KEY_INDEX            "index"
+
 /* values */
 #define GST_CV_OBJECT_INFO_SUB_KEY_TYPE_ROI         "roi"
 
@@ -40,6 +45,8 @@ G_BEGIN_DECLS
 #define GST_TYPE_CV_OBJECT_INFO_SUB_PARAM_INDEX     G_TYPE_UINT
 /* keys */
 #define GST_CV_OBJECT_INFO_SUB_PARAM_INDEX          "index"
+
+guint gst_cv_object_info_generate_id ();
 
 G_END_DECLS
 

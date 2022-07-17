@@ -17,24 +17,13 @@
  * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
+#include "objectinfoutils.h"
 
-/* inclusion guard */
-#ifndef __CV_OBJECT_INFO_CENTROID_H__
-#define __CV_OBJECT_INFO_CENTROID_H__
+static guint next_object_info_id = 0;
 
-#include <glib-object.h>
-#include <graphene-gobject.h>
-#include "objectinfo.h"
-
-G_BEGIN_DECLS
-
-#define GST_CV_OBJECT_INFO_CENTROID_IS_UNDEFINED(p) (p.x < 0 && p.y < 0)
-
-gboolean
-gst_cv_object_info_get_centroid (GstCVObjectInfo  * object_info,
-                                 graphene_point_t * centroid);
-
-G_END_DECLS
-
-#endif /* __CV_OBJECT_INFO_CENTROID_H__ */
-
+guint
+gst_cv_object_info_generate_id ()
+{
+  /* TODO: Return an uuid. */
+  return next_object_info_id++;
+}

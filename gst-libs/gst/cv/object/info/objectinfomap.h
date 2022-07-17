@@ -42,9 +42,19 @@ typedef void         (*GstCVObjectInfoMapFunc)                     (GstStructure
                                                                     GstCVObjectInfo * value,
                                                                     gpointer          user_data);
 
+guint                gst_cv_object_info_map_key_hash               (gconstpointer key);
+
+gboolean             gst_cv_object_info_key_equal                  (gconstpointer k1,
+                                                                    gconstpointer k2);
+
+void                 gst_cv_object_info_key_free                   (gpointer k);
+
 gboolean             gst_cv_object_info_map_check_key              (GstStructure * key);
 
 GstCVObjectInfoMap * gst_cv_object_info_map_new                    (void);
+
+GstCVObjectInfoMap * gst_cv_object_info_map_new_full               (gboolean free_key_on_destroy,
+                                                                    gboolean free_value_on_destroy);
 
 void                 gst_cv_object_info_map_destroy                (GstCVObjectInfoMap * self);
 
@@ -62,6 +72,9 @@ gboolean             gst_cv_object_info_map_insert                 (GstCVObjectI
                                                                     GstCVObjectInfo *    value);
 
 GstCVObjectInfo *    gst_cv_object_info_map_lookup                 (GstCVObjectInfoMap * self,
+                                                                    const GstStructure * key);
+
+gboolean             gst_cv_object_info_map_remove                 (GstCVObjectInfoMap * self,
                                                                     const GstStructure * key);
 
 void                 gst_cv_object_info_map_iter_init              (GstCVObjectInfoMapIter * iter,
