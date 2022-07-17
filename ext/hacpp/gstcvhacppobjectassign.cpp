@@ -20,14 +20,18 @@
 /**
  * SECTION:element-cvhacppobjectassign
  *
- * cvhacppobjectassign detects objects following the method
- * Histograms of Oriented Gradients for Human Detection by
- * Navneet Dalal and Bill Triggs.
+ * cvhacppobjectassign (re)-assigns objects following the algorithm
+ * known as the Hungarian Method.
  *
  * <refsect2>
  * <title>Example launch line</title>
  * |[
- * gst-launch-1.0 v4l2src ! videoconvert ! cvhacppobjectassign model-location=model.dat ! videoconvert ! xvimagesink
+ * gst-launch-1.0 v4l2src ! cvdlibobjectdetecthog name=detect \
+ *    model-location=model.svm sub-key=cv,label=face ! \
+ *    cvhacppobjectassign on-cache-id=cache0 sub-key=cv,label=face ! \
+ *    cvobjectcache name=cache0 max-cache-size=30 ! \
+ *    cvdraw sub-key=cv,label=face params="cv,params=<index>" ! \
+ *    videoconvert ! xvimagesink
  * ]|
  * </refsect2>
  */
